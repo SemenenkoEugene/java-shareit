@@ -30,7 +30,7 @@ public class ItemController {
 
     @ResponseBody
     @PatchMapping("/{itemId}")
-    public ItemDto update(@PathVariable(required = false) Long itemId, @RequestHeader(HEADER) Long ownerId, @RequestBody ItemDto itemDto) {
+    public ItemDto update(@PathVariable Long itemId, @RequestHeader(HEADER) Long ownerId, @RequestBody ItemDto itemDto) {
         log.debug("Получен PATCH-запрос к эндпоинту: '/items' на обновление вещи с ID={}", itemId);
         return itemService.update(itemId, ownerId, itemDto);
     }
