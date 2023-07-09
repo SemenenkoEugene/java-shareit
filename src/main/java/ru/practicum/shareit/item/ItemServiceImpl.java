@@ -39,7 +39,7 @@ public class ItemServiceImpl implements ItemService {
     public ItemDto update(Long itemId, Long ownerId, ItemDto itemDto) {
         checkUserId(ownerId);
         var itemById = itemStorage.getItemById(itemId);
-        if (!itemById.getOwnerId().equals(ownerId)){
+        if (!itemById.getOwnerId().equals(ownerId)) {
             throw new ItemNotFoundException("У пользователя нет такой вещи!");
         }
         if (itemDto.getId() == null) {
