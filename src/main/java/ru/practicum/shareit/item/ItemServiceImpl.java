@@ -38,11 +38,14 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public ItemDto update(Long itemId, Long ownerId, ItemDto itemDto) {
         checkUserId(ownerId);
+        var itemById = itemStorage.getItemById(itemId);
+        if (!itemById.getOwnerId().equals(ownerId)){
+            throw new ItemNotFoundException("У пользователя нет такой вещи!");
+        }
         if (itemDto.getId() == null) {
             itemDto.setId(itemId);
         }
-        var userById = userStorage.getUserById(ownerId);
-        var item = itemMapper.toItem(itemDto, userById.getId());
+        var item = itemMapper.toItem(itemDto, ownerId);
         return itemMapper.toItemDto(itemStorage.update(itemId, ownerId, item));
     }
 
