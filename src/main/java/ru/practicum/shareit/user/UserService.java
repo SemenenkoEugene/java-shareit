@@ -10,7 +10,7 @@ public interface UserService {
 
     UserDto update(UserDto userDto, Long id);
 
-    UserDto delete(Long userId);
+    void delete(Long userId);
 
     UserDto getUserById(Long id);
 

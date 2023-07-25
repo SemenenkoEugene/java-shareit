@@ -1,52 +1,84 @@
 package ru.practicum.shareit.user;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.exception.UserAlreadyExistsException;
+import ru.practicum.shareit.exception.ValidationException;
+import ru.practicum.shareit.service.ServiceUtil;
 import ru.practicum.shareit.user.dto.UserDto;
 
+import javax.validation.Validation;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
-    private final UserStorage userStorage;
-    private final UserMapper userMapper;
-
-    @Autowired
-    public UserServiceImpl(@Qualifier("InMemoryUserStorage") UserStorage userStorage, UserMapper userMapper) {
-        this.userStorage = userStorage;
-        this.userMapper = userMapper;
-    }
+    private final UserRepository userRepository;
 
     @Override
+    @Transactional
     public UserDto create(UserDto userDto) {
-        return userMapper.toUserDto(userStorage.createUser(UserMapper.toUser(userDto)));
-    }
-
-    @Override
-    public UserDto update(UserDto userDto, Long id) {
-        if (userDto.getId() == null) {
-            userDto.setId(id);
+        User user = UserMapper.toUser(userDto);
+        try {
+            return UserMapper.toUserDto(userRepository.save(user));
+        } catch (DataIntegrityViolationException e) {
+            throw new UserAlreadyExistsException("Пользователь с такими данными существует");
         }
-        return userMapper.toUserDto(userStorage.updateUser(UserMapper.toUser(userDto)));
     }
 
     @Override
-    public UserDto delete(Long userId) {
-        return userMapper.toUserDto(userStorage.deleteUser(userId));
+    @Transactional
+    public UserDto update(UserDto userDto, Long id) {
+        var user = ServiceUtil.getUserOrThrowNotFound(id, userRepository);
+
+        Optional.ofNullable(userDto.getName()).ifPresent(user::setName);
+        Optional.ofNullable(userDto.getEmail()).ifPresent(user::setEmail);
+
+        if (isValid(UserMapper.toUserDto(user))) {
+            try {
+                return UserMapper.toUserDto(userRepository.save(user));
+            } catch (DataIntegrityViolationException e) {
+                throw new UserAlreadyExistsException("Пользователь с такими данными существует");
+            }
+        } else {
+            throw new ValidationException("Некорректное значение для обновления");
+        }
+
     }
 
     @Override
+    @Transactional
+    public void delete(Long userId) {
+        userRepository.deleteById(userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public UserDto getUserById(Long id) {
-        return userMapper.toUserDto(userStorage.getUserById(id));
+        return UserMapper.toUserDto(ServiceUtil.getUserOrThrowNotFound(id, userRepository));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<UserDto> getUsers() {
-        return userStorage.getUsers().stream()
-                .map(userMapper::toUserDto)
-                .collect(Collectors.toList());
+        return userRepository.findAll().stream()
+                .map(UserMapper::toUserDto)
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private boolean isValid(UserDto userDto) {
+        try {
+            var validator = Validation.buildDefaultValidatorFactory().getValidator();
+            var validate = validator.validate(userDto);
+            return validate.isEmpty();
+        } catch (ValidationException e) {
+            throw new ValidationException(e.getMessage());
+        }
     }
 }
