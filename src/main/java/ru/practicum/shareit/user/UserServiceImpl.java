@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final ServiceUtil serviceUtil;
 
     @Override
     @Transactional
@@ -35,7 +36,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserDto update(UserDto userDto, Long id) {
-        var user = ServiceUtil.getUserOrThrowNotFound(id, userRepository);
+        var user = serviceUtil.getUserOrThrowNotFound(id);
 
         Optional.ofNullable(userDto.getName()).ifPresent(user::setName);
         Optional.ofNullable(userDto.getEmail()).ifPresent(user::setEmail);
@@ -61,7 +62,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserDto getUserById(Long id) {
-        return UserMapper.toUserDto(ServiceUtil.getUserOrThrowNotFound(id, userRepository));
+        return UserMapper.toUserDto(serviceUtil.getUserOrThrowNotFound(id));
     }
 
     @Override

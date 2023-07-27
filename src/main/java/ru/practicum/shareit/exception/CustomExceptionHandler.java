@@ -17,6 +17,7 @@ public class CustomExceptionHandler {
 
     private static final String HTTP_STATUS_NOT_FOUND = "HttpStatus.NOT_FOUND";
     private static final String HTTP_STATUS_BAD_REQUEST = "HttpStatus.BAD_REQUEST";
+    private static final String HTTP_STATUS_CONFLICT = "HttpStatus.CONFLICT";
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -41,9 +42,9 @@ public class CustomExceptionHandler {
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.CONFLICT)
-    public ResponseError userAlreadyExists(UserAlreadyExistsException e) {
+    public ResponseError userAlreadyExistsHandler(UserAlreadyExistsException e) {
         log.error(e.getMessage());
-        return new ResponseError(HTTP_STATUS_BAD_REQUEST, e.getMessage());
+        return new ResponseError(HTTP_STATUS_CONFLICT, e.getMessage());
     }
 
     @ExceptionHandler
@@ -58,6 +59,20 @@ public class CustomExceptionHandler {
     public ResponseError unsupportedStatusHandler(UnsupportedStatusException e) {
         log.error(e.getMessage());
         return new ResponseError(HTTP_STATUS_BAD_REQUEST, e.getMessage());
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ResponseError itemForbiddenStatusHandler(ItemForbiddenException e) {
+        log.error(e.getMessage());
+        return new ResponseError("HttpStatus.FORBIDDEN", e.getMessage());
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ResponseError itemAlreadyExistsHandler(ItemAlreadyExistsException e) {
+        log.error(e.getMessage());
+        return new ResponseError(HTTP_STATUS_CONFLICT, e.getMessage());
     }
 
     @Getter

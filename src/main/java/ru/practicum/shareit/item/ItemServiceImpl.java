@@ -2,18 +2,17 @@ package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 import ru.practicum.shareit.booking.Booking;
 import ru.practicum.shareit.booking.BookingRepository;
 import ru.practicum.shareit.booking.Status;
+import ru.practicum.shareit.exception.ItemAlreadyExistsException;
+import ru.practicum.shareit.exception.ItemForbiddenException;
 import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.service.ServiceUtil;
-import ru.practicum.shareit.user.UserRepository;
 
 import javax.validation.Validation;
 import java.time.LocalDateTime;
@@ -25,14 +24,14 @@ import java.util.stream.Collectors;
 public class ItemServiceImpl implements ItemService {
 
     private final ItemRepository itemRepository;
-    private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
     private final CommentRepository commentRepository;
+    private final ServiceUtil serviceUtil;
 
     @Override
     @Transactional
     public ItemDto create(ItemDto itemDto, Long userId) {
-        var user = ServiceUtil.getUserOrThrowNotFound(userId, userRepository);
+        var user = serviceUtil.getUserOrThrowNotFound(userId);
         var item = ItemMapper.toItem(itemDto);
         item.setOwner(user);
         return ItemMapper.toItemDto(itemRepository.save(item));
@@ -41,11 +40,11 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional
     public CommentDto createComment(CommentDto commentDto, Long userId, Long itemId) {
-        var user = ServiceUtil.getUserOrThrowNotFound(userId, userRepository);
-        var item = ServiceUtil.getItemOrThrowNotFound(itemId, itemRepository);
+        var user = serviceUtil.getUserOrThrowNotFound(userId);
+        var item = serviceUtil.getItemOrThrowNotFound(itemId);
         var comment = CommentMapper.toComment(commentDto);
 
-        if (bookingRepository.findAllApprovedByItemIdAndUserId(itemId, userId, LocalDateTime.now()).isEmpty()) {
+        if (bookingRepository.findByBookerIdAndItemIdAndEndBeforeOrderByEndDesc(itemId, userId, LocalDateTime.now()).isEmpty()) {
             throw new ValidationException("Комментарии можно оставлять только к тем вещам, на которые было бронирование");
         }
         comment.setAuthor(user);
@@ -58,12 +57,12 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional(readOnly = true)
     public ItemDto getItemById(Long userId, Long itemId) {
-        var item = ServiceUtil.getItemOrThrowNotFound(itemId, itemRepository);
+        var item = serviceUtil.getItemOrThrowNotFound(itemId);
         var itemDto = ItemMapper.toItemDto(item);
         if ((Objects.equals(item.getOwner().getId(), userId))) {
             addBookingInfo(itemDto);
         }
-        addComments(itemDto);
+        addCommentsInfo(itemDto);
         return itemDto;
     }
 
@@ -73,7 +72,7 @@ public class ItemServiceImpl implements ItemService {
         return itemRepository.findAllByOwnerId(userId).stream()
                 .map(ItemMapper::toItemDto)
                 .map(this::addBookingInfo)
-                .map(this::addComments)
+                .map(this::addCommentsInfo)
                 .sorted(Comparator.comparing(ItemDto::getId))
                 .collect(Collectors.toList());
     }
@@ -82,7 +81,7 @@ public class ItemServiceImpl implements ItemService {
     @Transactional(readOnly = true)
     public List<ItemDto> getItemsBySearchQuery(String searchText) {
         if (searchText.isBlank()) {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
         return itemRepository.findBySearchText(searchText).stream()
                 .map(ItemMapper::toItemDto)
@@ -92,10 +91,10 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional
     public ItemDto update(ItemDto itemDto, Long itemId, Long userId) {
-        var item = ServiceUtil.getItemOrThrowNotFound(itemId, itemRepository);
+        var item = serviceUtil.getItemOrThrowNotFound(itemId);
 
         if (!item.getOwner().getId().equals(userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Редактирование вещи доступно только владельцу");
+            throw new ItemForbiddenException("Редактирование вещи доступно только владельцу");
         }
         Optional.ofNullable(itemDto.getName()).ifPresent(item::setName);
         Optional.ofNullable(itemDto.getDescription()).ifPresent(item::setDescription);
@@ -105,7 +104,7 @@ public class ItemServiceImpl implements ItemService {
             try {
                 return ItemMapper.toItemDto(itemRepository.save(item));
             } catch (DataIntegrityViolationException e) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
+                throw new ItemAlreadyExistsException(e.getMessage());
             }
         } else {
             throw new ValidationException("Некорректное значение для обновления");
@@ -124,7 +123,7 @@ public class ItemServiceImpl implements ItemService {
         return violations.isEmpty();
     }
 
-    private ItemDto addComments(ItemDto itemDto) {
+    private ItemDto addCommentsInfo(ItemDto itemDto) {
         itemDto.setComments(commentRepository.findAllByItemId(itemDto.getId()).stream()
                 .map(CommentMapper::toCommentDto)
                 .collect(Collectors.toList()));

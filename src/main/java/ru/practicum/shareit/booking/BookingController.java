@@ -48,7 +48,7 @@ public class BookingController {
                                                   @RequestHeader(USER_ID) Long userId) {
         log.info("Получен GET-запрос к эндпоинту: '/bookings' на получение " +
                  "списка всех бронирований пользователя с ID={} с параметром STATE={}", userId, state);
-        var status = RequestBookingStatus.state(state)
+        var status = RequestBookingStatus.state(state.toUpperCase())
                 .orElseThrow(() -> new UnsupportedStatusException("Unknown state: " + state));
         return bookingService.getAllByState(status, userId);
     }
@@ -58,7 +58,7 @@ public class BookingController {
                                                      @RequestHeader(USER_ID) Long userId) {
         log.info("Получен GET-запрос к эндпоинту: '/bookings/owner' на получение " +
                  "списка всех бронирований вещей пользователя с ID={} с параметром STATE={}", userId, state);
-        var status = RequestBookingStatus.state(state)
+        var status = RequestBookingStatus.state(state.toUpperCase())
                 .orElseThrow(() -> new UnsupportedStatusException("Unknown state: " + state));
         return bookingService.getAllByStateForOwner(status, userId);
     }

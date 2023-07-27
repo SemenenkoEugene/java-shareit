@@ -9,9 +9,7 @@ import ru.practicum.shareit.booking.dto.BookingResponseDto;
 import ru.practicum.shareit.booking.dto.RequestBookingStatus;
 import ru.practicum.shareit.exception.BookingNotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
-import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.service.ServiceUtil;
-import ru.practicum.shareit.user.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -25,15 +23,14 @@ import java.util.stream.Collectors;
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
-    private final UserRepository userRepository;
-    private final ItemRepository itemRepository;
+    private final ServiceUtil serviceUtil;
 
     @Override
     @Transactional(readOnly = true)
     public BookingResponseDto getById(Long bookingId, Long userId) {
-        var booking = ServiceUtil.getBookingOrThrowNotFound(bookingId, bookingRepository);
-        ServiceUtil.getUserOrThrowNotFound(userId, userRepository);
-
+        var booking = serviceUtil.getBookingOrThrowNotFound(bookingId);
+        serviceUtil.getUserOrThrowNotFound(userId);
+//
         if (!(Objects.equals(booking.getUser().getId(), userId) || Objects.equals(booking.getItem().getOwner().getId(), userId))) {
             throw new BookingNotFoundException("Не найдено подходящих бронирований для пользователя " + userId);
         }
@@ -43,7 +40,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(readOnly = true)
     public List<BookingResponseDto> getAllByState(RequestBookingStatus requestBookingStatus, Long userId) {
-        ServiceUtil.getUserOrThrowNotFound(userId, userRepository);
+        serviceUtil.getUserOrThrowNotFound(userId);
         switch (requestBookingStatus) {
             case ALL:
                 return bookingRepository.findAllByUserIdOrderByStartDesc(userId).stream()
@@ -78,7 +75,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(readOnly = true)
     public List<BookingResponseDto> getAllByStateForOwner(RequestBookingStatus requestBookingStatus, Long userId) {
-        ServiceUtil.getUserOrThrowNotFound(userId, userRepository);
+        serviceUtil.getUserOrThrowNotFound(userId);
 
         switch (requestBookingStatus) {
             case ALL:
@@ -107,21 +104,21 @@ public class BookingServiceImpl implements BookingService {
                         .map(BookingMapper::toDto)
                         .collect(Collectors.toList());
             default:
-                 return new ArrayList<>();
+                return new ArrayList<>();
         }
     }
 
     @Override
     @Transactional
     public BookingResponseDto create(BookingRequestDto bookingRequestDto, Long userId) {
-        var user = ServiceUtil.getUserOrThrowNotFound(userId, userRepository);
-        var item = ServiceUtil.getItemOrThrowNotFound(bookingRequestDto.getItemId(), itemRepository);
+        var user = serviceUtil.getUserOrThrowNotFound(userId);
+        var item = serviceUtil.getItemOrThrowNotFound(bookingRequestDto.getItemId());
 
-        if (Boolean.FALSE.equals(item.getAvailable())) {
+        if (!item.getAvailable()) {
             throw new ValidationException("Вещь не доступна для бронирования");
         }
 
-        if (Objects.equals(item.getOwner().getId(), userId)) {
+        if (userId.equals(item.getOwner().getId())) {
             throw new BookingNotFoundException("Владелец не может бронировать свою вещь");
         }
         var booking = BookingMapper.fromDto(bookingRequestDto);
@@ -135,8 +132,8 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingResponseDto approve(Long bookingId, boolean approved, Long userId) {
-        var booking = ServiceUtil.getBookingOrThrowNotFound(bookingId, bookingRepository);
-        ServiceUtil.getUserOrThrowNotFound(userId, userRepository);
+        var booking = serviceUtil.getBookingOrThrowNotFound(bookingId);
+        serviceUtil.getUserOrThrowNotFound(userId);
 
         if (!Objects.equals(booking.getItem().getOwner().getId(), userId)) {
             throw new BookingNotFoundException("Подтверждение доступно только для владельца вещи");
