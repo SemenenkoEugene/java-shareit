@@ -44,7 +44,9 @@ public class ItemServiceImpl implements ItemService {
         var item = serviceUtil.getItemOrThrowNotFound(itemId);
         var comment = CommentMapper.toComment(commentDto);
 
-        if (bookingRepository.findByItemIdAndUserIdAndExpiredEndDateAndApprovedStatus(itemId, userId, LocalDateTime.now()).isEmpty()) {
+        if (bookingRepository.findByItemIdAndUserIdAndExpiredEndDateAndApprovedStatus(itemId,
+                userId,
+                LocalDateTime.now()).isEmpty()) {
             throw new ValidationException("Комментарии можно оставлять только к тем вещам, на которые было бронирование");
         }
         comment.setAuthor(user);
