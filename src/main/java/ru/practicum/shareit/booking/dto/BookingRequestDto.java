@@ -19,6 +19,8 @@ public class BookingRequestDto {
     @NotNull
     @Future
     private LocalDateTime end;
+    @NotNull
+    private Long itemId;
 
     @AssertTrue(message = "Время окончания не может быть до старта")
     private boolean isEndAfterStart() {
@@ -29,7 +31,4 @@ public class BookingRequestDto {
     private boolean isStartEqualsEnd() {
         return start == null || !start.equals(end);
     }
-
-    @NotNull
-    private Long itemId;
 }

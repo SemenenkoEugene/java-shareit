@@ -5,8 +5,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.UserAlreadyExistsException;
+import ru.practicum.shareit.exception.UserNotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
-import ru.practicum.shareit.service.ServiceUtil;
 import ru.practicum.shareit.user.dto.UserDto;
 
 import javax.validation.Validation;
@@ -19,8 +19,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
+    private static final String USER_ALREADY_EXISTS = "Пользователь с такими данными существует";
+    private static final String INVALID_VALUE_FOR_UPDATE = "Некорректное значение для обновления";
+    private static final String USER_NOT_FOUND = "Пользователь не найден";
     private final UserRepository userRepository;
-    private final ServiceUtil serviceUtil;
 
     @Override
     @Transactional
@@ -29,14 +31,15 @@ public class UserServiceImpl implements UserService {
         try {
             return UserMapper.toUserDto(userRepository.save(user));
         } catch (DataIntegrityViolationException e) {
-            throw new UserAlreadyExistsException("Пользователь с такими данными существует");
+            throw new UserAlreadyExistsException(USER_ALREADY_EXISTS);
         }
     }
 
     @Override
     @Transactional
     public UserDto update(UserDto userDto, Long id) {
-        var user = serviceUtil.getUserOrThrowNotFound(id);
+        var user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException(USER_NOT_FOUND));
 
         Optional.ofNullable(userDto.getName()).ifPresent(user::setName);
         Optional.ofNullable(userDto.getEmail()).ifPresent(user::setEmail);
@@ -45,12 +48,11 @@ public class UserServiceImpl implements UserService {
             try {
                 return UserMapper.toUserDto(userRepository.save(user));
             } catch (DataIntegrityViolationException e) {
-                throw new UserAlreadyExistsException("Пользователь с такими данными существует");
+                throw new UserAlreadyExistsException(USER_ALREADY_EXISTS);
             }
         } else {
-            throw new ValidationException("Некорректное значение для обновления");
+            throw new ValidationException(INVALID_VALUE_FOR_UPDATE);
         }
-
     }
 
     @Override
@@ -62,7 +64,9 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserDto getUserById(Long id) {
-        return UserMapper.toUserDto(serviceUtil.getUserOrThrowNotFound(id));
+        var user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException(USER_NOT_FOUND));
+        return UserMapper.toUserDto(user);
     }
 
     @Override

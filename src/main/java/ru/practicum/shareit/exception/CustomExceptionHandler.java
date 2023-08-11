@@ -75,6 +75,13 @@ public class CustomExceptionHandler {
         return new ResponseError(HTTP_STATUS_CONFLICT, e.getMessage());
     }
 
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ResponseError itemRequestNotFoundHandler(ItemRequestNotFoundException e) {
+        log.error(e.getMessage());
+        return new ResponseError(HTTP_STATUS_NOT_FOUND, e.getMessage());
+    }
+
     @Getter
     @RequiredArgsConstructor
     private static class ResponseError {

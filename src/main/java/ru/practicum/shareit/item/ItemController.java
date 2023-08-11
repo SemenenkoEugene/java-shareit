@@ -7,6 +7,7 @@ import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Min;
 import java.util.List;
 
 @RestController
@@ -15,8 +16,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ItemController {
 
-    private final ItemService itemService;
     private static final String HEADER = "X-Sharer-User-Id";
+    private final ItemService itemService;
 
     @PostMapping
     public ItemDto create(@Valid @RequestBody ItemDto itemDto,
@@ -48,21 +49,25 @@ public class ItemController {
     }
 
     @GetMapping("/{itemId}")
-    public ItemDto getItemById(@PathVariable Long itemId,
-                               @RequestHeader(HEADER) Long userId) {
+    public ItemDto getItemById(@RequestHeader(HEADER) Long userId,
+                               @PathVariable Long itemId) {
         log.info("Получен GET-запрос к эндпоинту: '/items' на получение вещи с ID={}", itemId);
         return itemService.getItemById(userId, itemId);
     }
 
     @GetMapping
-    public List<ItemDto> getItemsByOwnerId(@RequestHeader(HEADER) Long userId) {
+    public List<ItemDto> getItemsByOwnerId(@RequestHeader(HEADER) Long userId,
+                                           @RequestParam(required = false, defaultValue = "0") @Min(0) int from,
+                                           @RequestParam(required = false, defaultValue = "20") @Min(1) int size) {
         log.info("Получен GET-запрос к эндпоинту: '/items' на получение всех вещей владельца с ID={}", userId);
-        return itemService.getItemsByOwnerId(userId);
+        return itemService.getItemsByOwnerId(userId, from, size);
     }
 
     @GetMapping("/search")
-    public List<ItemDto> getItemsBySearchQuery(@RequestParam(name = "text") String searchText) {
+    public List<ItemDto> getItemsBySearchQuery(@RequestParam(name = "text") String searchText,
+                                               @RequestParam(required = false, defaultValue = "0") @Min(0) int from,
+                                               @RequestParam(required = false, defaultValue = "20") @Min(1) int size) {
         log.info("Получен GET-запрос к эндпоинту: '/items/search' на поиск вещи с текстом={}", searchText);
-        return itemService.getItemsBySearchQuery(searchText);
+        return itemService.getItemsBySearchQuery(searchText, from, size);
     }
 }

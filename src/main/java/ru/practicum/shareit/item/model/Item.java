@@ -1,6 +1,10 @@
 package ru.practicum.shareit.item.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import ru.practicum.shareit.request.ItemRequest;
 import ru.practicum.shareit.user.User;
 
 import javax.persistence.*;
@@ -8,6 +12,9 @@ import javax.persistence.*;
 @Data
 @Entity
 @Table(name = "items")
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class Item {
 
     @Id
@@ -24,6 +31,9 @@ public class Item {
     @ManyToOne
     @JoinColumn(name = "owner_id")
     private User owner;           //владелец вещи
-    private Long requestId;         //если вещь была создана по запросу другого пользователя, то в этом
+
+    @ManyToOne
+    @JoinColumn(name = "request_id")
+    private ItemRequest itemRequest;         //если вещь была создана по запросу другого пользователя, то в этом
     // поле хранится ссылка на соответствующий запрос
 }
