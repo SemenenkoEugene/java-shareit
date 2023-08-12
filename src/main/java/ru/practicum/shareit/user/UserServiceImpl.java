@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.UserAlreadyExistsException;
-import ru.practicum.shareit.exception.UserNotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.user.dto.UserDto;
 
@@ -39,7 +39,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserDto update(UserDto userDto, Long id) {
         var user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException(USER_NOT_FOUND));
+                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
 
         Optional.ofNullable(userDto.getName()).ifPresent(user::setName);
         Optional.ofNullable(userDto.getEmail()).ifPresent(user::setEmail);
@@ -65,7 +65,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public UserDto getUserById(Long id) {
         var user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException(USER_NOT_FOUND));
+                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
         return UserMapper.toUserDto(user);
     }
 

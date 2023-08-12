@@ -31,13 +31,11 @@ import static org.hamcrest.Matchers.equalTo;
 @ActiveProfiles("test")
 class BookingIntegrationTest {
     @Autowired
+    EntityManager entityManager;
+    @Autowired
     private MockMvc mockMvc;
-
     @Autowired
     private ObjectMapper objectMapper;
-
-    @Autowired
-    EntityManager entityManager;
 
     @Test
     @Order(1)

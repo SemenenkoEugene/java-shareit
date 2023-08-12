@@ -9,7 +9,7 @@ import org.springframework.data.domain.Pageable;
 import ru.practicum.shareit.booking.dto.BookingRequestDto;
 import ru.practicum.shareit.booking.dto.BookingResponseDto;
 import ru.practicum.shareit.booking.dto.RequestBookingStatus;
-import ru.practicum.shareit.exception.BookingNotFoundException;
+import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.item.model.Item;
@@ -83,7 +83,7 @@ class BookingServiceTest {
         when(userRepository.findById(unrelated.getId()))
                 .thenReturn(Optional.of(unrelated));
 
-        var bookingNotFoundException = assertThrows(BookingNotFoundException.class,
+        var bookingNotFoundException = assertThrows(NotFoundException.class,
                 () -> bookingService.getById(booking.getId(), unrelated.getId()));
 
         assertThat(bookingNotFoundException.getMessage(), equalTo("Не найдено подходящих бронирований для пользователя " + unrelated.getId()));
@@ -295,7 +295,7 @@ class BookingServiceTest {
         when(itemRepository.findById(item.getId()))
                 .thenReturn(Optional.of(item));
 
-        var bookingNotFoundException = assertThrows(BookingNotFoundException.class,
+        var bookingNotFoundException = assertThrows(NotFoundException.class,
                 () -> bookingService.create(requestDto, owner.getId()));
 
         assertThat(bookingNotFoundException.getMessage(), equalTo("Владелец не может бронировать свою вещь"));
@@ -351,7 +351,7 @@ class BookingServiceTest {
         when(userRepository.findById(booker.getId()))
                 .thenReturn(Optional.of(booker));
 
-        var bookingNotFoundException = assertThrows(BookingNotFoundException.class,
+        var bookingNotFoundException = assertThrows(NotFoundException.class,
                 () -> bookingService.approve(booking.getId(), true, booker.getId()));
 
         assertThat(bookingNotFoundException.getMessage(), equalTo("Подтверждение доступно только для владельца вещи"));

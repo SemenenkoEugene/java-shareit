@@ -8,7 +8,10 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.Booking;
 import ru.practicum.shareit.booking.BookingRepository;
 import ru.practicum.shareit.booking.Status;
-import ru.practicum.shareit.exception.*;
+import ru.practicum.shareit.exception.ItemAlreadyExistsException;
+import ru.practicum.shareit.exception.ItemForbiddenException;
+import ru.practicum.shareit.exception.NotFoundException;
+import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.request.ItemRequestRepository;
@@ -38,14 +41,14 @@ public class ItemServiceImpl implements ItemService {
     @Transactional
     public ItemDto create(ItemDto itemDto, Long userId) {
         var user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(USER_NOT_FOUND));
+                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
 
         var item = ItemMapper.toItem(itemDto);
         item.setOwner(user);
 
         if (itemDto.getRequestId() != null) {
             var itemRequest = itemRequestRepository.findById(itemDto.getRequestId())
-                    .orElseThrow(() -> new ItemRequestNotFoundException(REQUEST_NOT_FOUND));
+                    .orElseThrow(() -> new NotFoundException(REQUEST_NOT_FOUND));
             item.setItemRequest(itemRequest);
         }
 
@@ -56,10 +59,10 @@ public class ItemServiceImpl implements ItemService {
     @Transactional
     public CommentDto createComment(CommentDto commentDto, Long userId, Long itemId) {
         var user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(USER_NOT_FOUND));
+                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
 
         var item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new ItemNotFoundException(ITEM_NOT_FOUND));
+                .orElseThrow(() -> new NotFoundException(ITEM_NOT_FOUND));
 
         var comment = CommentMapper.toComment(commentDto);
 
@@ -79,7 +82,7 @@ public class ItemServiceImpl implements ItemService {
     @Transactional(readOnly = true)
     public ItemDto getItemById(Long userId, Long itemId) {
         var item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new ItemNotFoundException(ITEM_NOT_FOUND));
+                .orElseThrow(() -> new NotFoundException(ITEM_NOT_FOUND));
         var itemDto = ItemMapper.toItemDto(item);
         if ((Objects.equals(item.getOwner().getId(), userId))) {
             addBookingInfo(itemDto);
@@ -114,7 +117,7 @@ public class ItemServiceImpl implements ItemService {
     @Transactional
     public ItemDto update(ItemDto itemDto, Long itemId, Long userId) {
         var item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new ItemNotFoundException(ITEM_NOT_FOUND));
+                .orElseThrow(() -> new NotFoundException(ITEM_NOT_FOUND));
 
         if (!item.getOwner().getId().equals(userId)) {
             throw new ItemForbiddenException("Редактирование вещи доступно только владельцу");

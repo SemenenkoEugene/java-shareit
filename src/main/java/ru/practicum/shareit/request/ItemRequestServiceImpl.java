@@ -4,8 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.shareit.exception.ItemRequestNotFoundException;
-import ru.practicum.shareit.exception.UserNotFoundException;
+import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.request.dto.ItemRequestCreateDto;
 import ru.practicum.shareit.request.dto.ItemRequestCreateResponseDto;
@@ -32,7 +31,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     @Transactional(readOnly = true)
     public List<ItemRequestGetResponseDto> getAllByRequestorId(Long userId, int from, int size) {
         userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(USER_NOT_FOUND));
+                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
         return itemRequestRepository
                 .findAllByRequestorIdOrderByCreatedDesc(userId, PageRequest.of(from / size, size)).stream()
                 .map(ItemRequestMapper::toGetResponseDto)
@@ -54,9 +53,9 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     @Transactional(readOnly = true)
     public ItemRequestGetResponseDto getById(Long userId, Long itemRequestId) {
         userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(USER_NOT_FOUND));
+                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
         var itemRequest = itemRequestRepository.findById(itemRequestId)
-                .orElseThrow(() -> new ItemRequestNotFoundException(REQUEST_NOT_FOUND));
+                .orElseThrow(() -> new NotFoundException(REQUEST_NOT_FOUND));
         var responseDto = ItemRequestMapper.toGetResponseDto(itemRequest);
         responseDto = addItemInfo(responseDto);
         return responseDto;
@@ -66,7 +65,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     @Transactional
     public ItemRequestCreateResponseDto create(ItemRequestCreateDto itemRequestCreateDto, Long userId) {
         var user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(USER_NOT_FOUND));
+                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
         var itemRequest = ItemRequestMapper.toItemRequest(itemRequestCreateDto);
         itemRequest.setRequestor(user);
         itemRequest.setCreated(LocalDateTime.now());

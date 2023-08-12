@@ -22,7 +22,7 @@ class BookingRepositoryTest {
     private BookingRepository bookingRepository;
 
     @Test
-    void findAllApprovedByItemIdAndUserIdTest() {
+    void findByItemIdAndUserIdAndExpiredEndDateAndApprovedStatusTest() {
         LocalDateTime timestamp = LocalDateTime.now();
 
         User owner = testEntityManager.persist(User.builder()

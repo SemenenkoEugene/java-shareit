@@ -9,9 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.dto.BookingRequestDto;
 import ru.practicum.shareit.booking.dto.BookingResponseDto;
 import ru.practicum.shareit.booking.dto.RequestBookingStatus;
-import ru.practicum.shareit.exception.BookingNotFoundException;
-import ru.practicum.shareit.exception.ItemNotFoundException;
-import ru.practicum.shareit.exception.UserNotFoundException;
+import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.user.UserRepository;
@@ -39,12 +37,12 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(readOnly = true)
     public BookingResponseDto getById(Long bookingId, Long userId) {
         var booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new BookingNotFoundException(BOOKING_NOT_FOUND));
+                .orElseThrow(() -> new NotFoundException(BOOKING_NOT_FOUND));
         userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(USER_NOT_FOUND));
+                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
 
         if (!(Objects.equals(booking.getUser().getId(), userId) || Objects.equals(booking.getItem().getOwner().getId(), userId))) {
-            throw new BookingNotFoundException("Не найдено подходящих бронирований для пользователя " + userId);
+            throw new NotFoundException("Не найдено подходящих бронирований для пользователя " + userId);
         }
         return BookingMapper.toDto(booking);
     }
@@ -56,7 +54,7 @@ public class BookingServiceImpl implements BookingService {
                                                   int from,
                                                   int size) {
         userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(USER_NOT_FOUND));
+                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
         Pageable pageable = PageRequest.of(from / size, size);
 
         switch (requestBookingStatus) {
@@ -101,7 +99,7 @@ public class BookingServiceImpl implements BookingService {
                                                           int from,
                                                           int size) {
         userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(USER_NOT_FOUND));
+                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
         Pageable pageable = PageRequest.of(from, size);
 
         switch (requestBookingStatus) {
@@ -144,16 +142,16 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public BookingResponseDto create(BookingRequestDto bookingRequestDto, Long userId) {
         var user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(USER_NOT_FOUND));
+                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
         var item = itemRepository.findById(bookingRequestDto.getItemId())
-                .orElseThrow(() -> new ItemNotFoundException(ITEM_NOT_FOUND));
+                .orElseThrow(() -> new NotFoundException(ITEM_NOT_FOUND));
 
         if (!item.getAvailable()) {
             throw new ValidationException("Вещь не доступна для бронирования");
         }
 
         if (userId.equals(item.getOwner().getId())) {
-            throw new BookingNotFoundException("Владелец не может бронировать свою вещь");
+            throw new NotFoundException("Владелец не может бронировать свою вещь");
         }
         var booking = BookingMapper.fromDto(bookingRequestDto);
         booking.setUser(user);
@@ -167,11 +165,11 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public BookingResponseDto approve(Long bookingId, boolean approved, Long userId) {
         var booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new BookingNotFoundException(BOOKING_NOT_FOUND));
+                .orElseThrow(() -> new NotFoundException(BOOKING_NOT_FOUND));
         userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(USER_NOT_FOUND));
+                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
         if (!Objects.equals(booking.getItem().getOwner().getId(), userId)) {
-            throw new BookingNotFoundException("Подтверждение доступно только для владельца вещи");
+            throw new NotFoundException("Подтверждение доступно только для владельца вещи");
         }
 
         if (booking.getStatus() != Status.WAITING) {
