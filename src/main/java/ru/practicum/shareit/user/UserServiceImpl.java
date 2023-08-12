@@ -27,7 +27,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserDto create(UserDto userDto) {
-        User user = UserMapper.toUser(userDto);
+        var user = UserMapper.toUser(userDto);
         try {
             return UserMapper.toUserDto(userRepository.save(user));
         } catch (DataIntegrityViolationException e) {
