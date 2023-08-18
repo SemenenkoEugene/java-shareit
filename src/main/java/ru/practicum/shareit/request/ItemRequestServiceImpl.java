@@ -15,6 +15,7 @@ import ru.practicum.shareit.user.UserRepository;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -89,22 +90,22 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
     private ItemRequestGetResponseDto getItemRequestGetResponseDto(ItemRequestGetResponseDto itemRequestGetResponseDto, List<Item> allItems) {
 
-        List<Item> items = allItems.stream()
-                .filter(item -> item.getItemRequest().getId().equals(itemRequestGetResponseDto.getId()))
+        Map<Long, List<Item>> itemGroups = allItems.stream()
+                .collect(Collectors.groupingBy(item -> item.getItemRequest().getId()));
+
+        List<ItemRequestGetResponseDto.RequestedItem> requestedItems = itemGroups.getOrDefault(
+                        itemRequestGetResponseDto.getId(), Collections.emptyList())
+                .stream()
+                .map(item -> ItemRequestGetResponseDto.RequestedItem.builder()
+                        .id(item.getId())
+                        .name(item.getName())
+                        .description(item.getDescription())
+                        .available(item.getAvailable())
+                        .requestId(item.getItemRequest().getId())
+                        .build())
                 .collect(Collectors.toList());
 
-        itemRequestGetResponseDto.setItems(items.isEmpty() ? Collections.emptyList() :
-                items.stream()
-                        .map(item -> ItemRequestGetResponseDto.RequestedItem.builder()
-                                .id(item.getId())
-                                .name(item.getName())
-                                .description(item.getDescription())
-                                .available(item.getAvailable())
-                                .requestId(item.getItemRequest().getId())
-                                .build()
-                        )
-                        .collect(Collectors.toList())
-        );
+        itemRequestGetResponseDto.setItems(requestedItems);
         return itemRequestGetResponseDto;
     }
 }
