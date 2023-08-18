@@ -100,8 +100,6 @@ class ItemRequestServiceTest {
         verify(userRepository, times(1)).findById(requestor.getId());
         verify(itemRequestRepository, times(1))
                 .findAllByRequestorIdOrderByCreatedDesc(eq(requestor.getId()), any(Pageable.class));
-//        verify(itemRepository, times(1)).findAllByItemRequestId(itemRequest1.getId());
-//        verify(itemRepository, times(1)).findAllByItemRequestId(itemRequest2.getId());
         verify(itemRepository, times(1)).findAllByItemRequestIn(itemRequestList);
         verifyNoMoreInteractions(itemRequestRepository, userRepository, itemRepository);
     }
