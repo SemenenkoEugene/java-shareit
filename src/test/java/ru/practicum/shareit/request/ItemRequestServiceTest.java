@@ -61,16 +61,18 @@ class ItemRequestServiceTest {
                 itemRequest1,
                 itemRequest2
         );
+        List<Item> items = Arrays.asList(
+                item1,
+                item2
+        );
 
         when(userRepository.findById(requestor.getId()))
                 .thenReturn(Optional.of(requestor));
         when(itemRequestRepository
                 .findAllByRequestorIdOrderByCreatedDesc(eq(requestor.getId()), any(Pageable.class)))
                 .thenReturn(itemRequestList);
-        when(itemRepository.findAllByItemRequestId(itemRequest1.getId()))
-                .thenReturn(List.of(item1));
-        when(itemRepository.findAllByItemRequestId(itemRequest2.getId()))
-                .thenReturn(List.of(item2));
+        when(itemRepository.findAllByItemRequestIn(itemRequestList))
+                .thenReturn(items);
 
         List<ItemRequestGetResponseDto> resultDtoList = itemRequestService
                 .getAllByRequestorId(requestor.getId(), 0, 10);
@@ -98,8 +100,9 @@ class ItemRequestServiceTest {
         verify(userRepository, times(1)).findById(requestor.getId());
         verify(itemRequestRepository, times(1))
                 .findAllByRequestorIdOrderByCreatedDesc(eq(requestor.getId()), any(Pageable.class));
-        verify(itemRepository, times(1)).findAllByItemRequestId(itemRequest1.getId());
-        verify(itemRepository, times(1)).findAllByItemRequestId(itemRequest2.getId());
+//        verify(itemRepository, times(1)).findAllByItemRequestId(itemRequest1.getId());
+//        verify(itemRepository, times(1)).findAllByItemRequestId(itemRequest2.getId());
+        verify(itemRepository, times(1)).findAllByItemRequestIn(itemRequestList);
         verifyNoMoreInteractions(itemRequestRepository, userRepository, itemRepository);
     }
 

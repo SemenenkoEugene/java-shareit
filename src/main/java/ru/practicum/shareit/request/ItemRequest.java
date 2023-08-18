@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Entity
-@Table(name = "request")
+@Table(name = "requests")
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -24,7 +24,7 @@ public class ItemRequest {
     @Column(name = "request_description")
     private String description;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "request_id")
     private User requestor;
 

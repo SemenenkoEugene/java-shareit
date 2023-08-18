@@ -6,9 +6,9 @@ import org.springframework.boot.test.autoconfigure.json.JsonTest;
 import org.springframework.boot.test.json.JacksonTester;
 import org.springframework.boot.test.json.JsonContent;
 import ru.practicum.shareit.booking.dto.BookingResponseDto;
-import ru.practicum.shareit.util.TimeFormatter;
 
 import java.time.LocalDateTime;
+import java.time.Month;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
@@ -19,9 +19,9 @@ class BookingJsonTest {
 
     @Test
     void bookingResponseDtoTest() throws Exception {
-        LocalDateTime timestamp = TimeFormatter.getCurrentTimeWithoutNano();
-        LocalDateTime startTimestamp = timestamp;
-        LocalDateTime endTimestamp = timestamp.plusDays(1);
+        var dateTime = LocalDateTime.of(2023, Month.AUGUST, 14, 13, 13, 13);
+        var startTimestamp = dateTime;
+        LocalDateTime endTimestamp = dateTime.plusDays(1);
 
         BookingResponseDto bookingResponseDto = BookingResponseDto.builder()
                 .id(5L)
@@ -41,9 +41,9 @@ class BookingJsonTest {
 
         assertThat(jsonContent).extractingJsonPathNumberValue("$.id").isEqualTo(5);
         assertThat(jsonContent).extractingJsonPathStringValue("$.start")
-                .isEqualTo(TimeFormatter.JSON_TEST_DT_FORMATTER.format(startTimestamp));
+                .isEqualTo("2023-08-14T13:13:13");
         assertThat(jsonContent).extractingJsonPathStringValue("$.end")
-                .isEqualTo(TimeFormatter.JSON_TEST_DT_FORMATTER.format(endTimestamp));
+                .isEqualTo("2023-08-15T13:13:13");
         assertThat(jsonContent).extractingJsonPathStringValue("$.status").isEqualTo(Status.APPROVED.toString());
         assertThat(jsonContent).extractingJsonPathNumberValue("$.booker.id").isEqualTo(10);
         assertThat(jsonContent).extractingJsonPathNumberValue("$.item.id").isEqualTo(15);

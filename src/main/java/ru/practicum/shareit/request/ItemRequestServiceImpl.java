@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.item.ItemRepository;
+import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.request.dto.ItemRequestCreateDto;
 import ru.practicum.shareit.request.dto.ItemRequestCreateResponseDto;
 import ru.practicum.shareit.request.dto.ItemRequestGetResponseDto;
@@ -13,6 +14,8 @@ import ru.practicum.shareit.user.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,10 +35,12 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     public List<ItemRequestGetResponseDto> getAllByRequestorId(Long userId, int from, int size) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
-        return itemRequestRepository
-                .findAllByRequestorIdOrderByCreatedDesc(userId, PageRequest.of(from / size, size)).stream()
+        List<ItemRequest> itemRequests = itemRequestRepository.findAllByRequestorIdOrderByCreatedDesc(userId, PageRequest.of(from / size, size));
+        List<Item> items = itemRepository.findAllByItemRequestIn(itemRequests);
+
+        return itemRequests.stream()
                 .map(ItemRequestMapper::toGetResponseDto)
-                .map(this::addItemInfo)
+                .map(itemRequestGetResponseDto -> addItemInfo(items, itemRequestGetResponseDto))
                 .collect(Collectors.toList());
     }
 
@@ -73,10 +78,24 @@ public class ItemRequestServiceImpl implements ItemRequestService {
         return ItemRequestMapper.toCreateResponseDto(itemRequestRepository.save(itemRequest));
     }
 
-    private ItemRequestGetResponseDto addItemInfo(ItemRequestGetResponseDto itemRequestGetResponseDto) {
-        var items = itemRepository.findAllByItemRequestId(itemRequestGetResponseDto.getId());
+    private ItemRequestGetResponseDto addItemInfo(List<Item> items, ItemRequestGetResponseDto itemRequestGetResponseDto) {
 
-        itemRequestGetResponseDto.setItems(items.isEmpty() ? new ArrayList<>() :
+        return getItemRequestGetResponseDto(itemRequestGetResponseDto, items);
+    }
+
+    private ItemRequestGetResponseDto addItemInfo(ItemRequestGetResponseDto itemRequestGetResponseDto) {
+        List<Item> items = itemRepository.findAllByItemRequestId(itemRequestGetResponseDto.getId());
+
+        return getItemRequestGetResponseDto(itemRequestGetResponseDto, items);
+    }
+
+    private ItemRequestGetResponseDto getItemRequestGetResponseDto(ItemRequestGetResponseDto itemRequestGetResponseDto, List<Item> allItems) {
+
+        List<Item> items = allItems.stream()
+                .filter(item -> item.getItemRequest().getId().equals(itemRequestGetResponseDto.getId()))
+                .collect(Collectors.toList());
+
+        itemRequestGetResponseDto.setItems(items.isEmpty() ? Collections.emptyList() :
                 items.stream()
                         .map(item -> ItemRequestGetResponseDto.RequestedItem.builder()
                                 .id(item.getId())

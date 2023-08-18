@@ -7,9 +7,9 @@ import org.springframework.boot.test.json.JacksonTester;
 import org.springframework.boot.test.json.JsonContent;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.util.TimeFormatter;
 
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.util.ArrayList;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
@@ -54,7 +54,7 @@ class ItemJsonTest {
 
     @Test
     void commentDtoTest() throws Exception {
-        LocalDateTime timestamp = TimeFormatter.getCurrentTimeWithoutNano();
+        LocalDateTime timestamp = LocalDateTime.of(2023, Month.AUGUST, 14, 12, 12, 12);
 
         CommentDto commentDto = CommentDto.builder()
                 .id(1L)
@@ -68,7 +68,7 @@ class ItemJsonTest {
         assertThat(jsonContent).extractingJsonPathNumberValue("$.id").isEqualTo(1);
         assertThat(jsonContent).extractingJsonPathStringValue("$.text").isEqualTo("Вещь хорошая");
         assertThat(jsonContent).extractingJsonPathStringValue("$.authorName").isEqualTo("Садовник Джо");
-        assertThat(jsonContent).extractingJsonPathStringValue("$.created").isEqualTo(TimeFormatter.JSON_TEST_DT_FORMATTER.format(timestamp));
+        assertThat(jsonContent).extractingJsonPathStringValue("$.created").isEqualTo("2023-08-14T12:12:12");
     }
 
 }
