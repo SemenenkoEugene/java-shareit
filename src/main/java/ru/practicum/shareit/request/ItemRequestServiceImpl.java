@@ -35,11 +35,13 @@ public class ItemRequestServiceImpl implements ItemRequestService {
         userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
         List<ItemRequest> itemRequests = itemRequestRepository.findAllByRequestorIdOrderByCreatedDesc(userId, PageRequest.of(from / size, size));
-        List<Item> items = itemRepository.findAllByItemRequestIn(itemRequests);
+        Map<Long, List<Item>> itemsRequestId = itemRepository.findAllByItemRequestIn(itemRequests).stream()
+                .collect(Collectors.groupingBy(item -> item.getItemRequest().getId()));
 
         return itemRequests.stream()
                 .map(ItemRequestMapper::toGetResponseDto)
-                .map(itemRequestGetResponseDto -> addItemInfo(items, itemRequestGetResponseDto))
+                .map(itemRequestGetResponseDto ->
+                        addItemInfo(itemsRequestId.get(itemRequestGetResponseDto.getId()), itemRequestGetResponseDto))
                 .collect(Collectors.toList());
     }
 
@@ -88,24 +90,20 @@ public class ItemRequestServiceImpl implements ItemRequestService {
         return getItemRequestGetResponseDto(itemRequestGetResponseDto, items);
     }
 
-    private ItemRequestGetResponseDto getItemRequestGetResponseDto(ItemRequestGetResponseDto itemRequestGetResponseDto, List<Item> allItems) {
+    private ItemRequestGetResponseDto getItemRequestGetResponseDto(ItemRequestGetResponseDto itemRequestGetResponseDto, List<Item> items) {
 
-        Map<Long, List<Item>> itemGroups = allItems.stream()
-                .collect(Collectors.groupingBy(item -> item.getItemRequest().getId()));
-
-        List<ItemRequestGetResponseDto.RequestedItem> requestedItems = itemGroups.getOrDefault(
-                        itemRequestGetResponseDto.getId(), Collections.emptyList())
-                .stream()
-                .map(item -> ItemRequestGetResponseDto.RequestedItem.builder()
-                        .id(item.getId())
-                        .name(item.getName())
-                        .description(item.getDescription())
-                        .available(item.getAvailable())
-                        .requestId(item.getItemRequest().getId())
-                        .build())
-                .collect(Collectors.toList());
-
-        itemRequestGetResponseDto.setItems(requestedItems);
+        itemRequestGetResponseDto.setItems(items == null || items.isEmpty() ? Collections.emptyList() :
+                items.stream()
+                        .map(item -> ItemRequestGetResponseDto.RequestedItem.builder()
+                                .id(item.getId())
+                                .name(item.getName())
+                                .description(item.getDescription())
+                                .available(item.getAvailable())
+                                .requestId(item.getItemRequest().getId())
+                                .build()
+                        )
+                        .collect(Collectors.toList())
+        );
         return itemRequestGetResponseDto;
     }
 }
