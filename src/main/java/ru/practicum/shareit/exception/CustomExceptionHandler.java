@@ -28,14 +28,7 @@ public class CustomExceptionHandler {
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ResponseError itemNotFoundHandle(ItemNotFoundException e) {
-        log.error(e.getMessage());
-        return new ResponseError(HTTP_STATUS_NOT_FOUND, e.getMessage());
-    }
-
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ResponseError userNotFoundHandle(UserNotFoundException e) {
+    public ResponseError notFoundHandle(NotFoundException e) {
         log.error(e.getMessage());
         return new ResponseError(HTTP_STATUS_NOT_FOUND, e.getMessage());
     }
@@ -45,13 +38,6 @@ public class CustomExceptionHandler {
     public ResponseError userAlreadyExistsHandler(UserAlreadyExistsException e) {
         log.error(e.getMessage());
         return new ResponseError(HTTP_STATUS_CONFLICT, e.getMessage());
-    }
-
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ResponseError bookingNotFoundHandler(BookingNotFoundException e) {
-        log.error(e.getMessage());
-        return new ResponseError(HTTP_STATUS_NOT_FOUND, e.getMessage());
     }
 
     @ExceptionHandler
