@@ -5,39 +5,68 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
 
-@Slf4j
 @RestControllerAdvice
+@Slf4j
 public class CustomExceptionHandler {
-    private static final String DATE_TIME_PATTERN = "yyyy-MM-dd HH:mm:ss";
 
-    @ExceptionHandler({IllegalArgumentException.class,
-            MethodArgumentNotValidException.class})
+    private static final String HTTP_STATUS_NOT_FOUND = "HttpStatus.NOT_FOUND";
+    private static final String HTTP_STATUS_BAD_REQUEST = "HttpStatus.BAD_REQUEST";
+    private static final String HTTP_STATUS_CONFLICT = "HttpStatus.CONFLICT";
+
+    @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseError badRequestHandle(Exception exception) {
-        log.error(exception.getMessage());
-        return new ResponseError(exception.getMessage(), HttpStatus.BAD_REQUEST);
+    public ResponseError validationHandle(ValidationException e) {
+        log.error(e.getMessage());
+        return new ResponseError(HTTP_STATUS_BAD_REQUEST, e.getMessage());
     }
 
     @ExceptionHandler
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ResponseError internalServerErrorHandle(Throwable exception) {
-        log.error(exception.getMessage());
-        return new ResponseError(exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ResponseError notFoundHandle(NotFoundException e) {
+        log.error(e.getMessage());
+        return new ResponseError(HTTP_STATUS_NOT_FOUND, e.getMessage());
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ResponseError userAlreadyExistsHandler(UserAlreadyExistsException e) {
+        log.error(e.getMessage());
+        return new ResponseError(HTTP_STATUS_CONFLICT, e.getMessage());
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseError unsupportedStatusHandler(UnsupportedStatusException e) {
+        log.error(e.getMessage());
+        return new ResponseError(HTTP_STATUS_BAD_REQUEST, e.getMessage());
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ResponseError itemForbiddenStatusHandler(ItemForbiddenException e) {
+        log.error(e.getMessage());
+        return new ResponseError("HttpStatus.FORBIDDEN", e.getMessage());
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ResponseError itemAlreadyExistsHandler(ItemAlreadyExistsException e) {
+        log.error(e.getMessage());
+        return new ResponseError(HTTP_STATUS_CONFLICT, e.getMessage());
     }
 
     @Getter
     @RequiredArgsConstructor
     private static class ResponseError {
+        private final String message;
         private final String error;
-        private final HttpStatus status;
-        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATE_TIME_PATTERN)
-        private final LocalDateTime time = LocalDateTime.now();
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+        private final LocalDateTime localDateTime = LocalDateTime.now();
     }
 }
