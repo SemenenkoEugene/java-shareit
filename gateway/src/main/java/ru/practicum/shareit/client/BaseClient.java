@@ -5,16 +5,30 @@ import org.springframework.lang.Nullable;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
-import static ru.practicum.shareit.booking.BookingController.X_SHARER_USER_ID;
-
 import java.util.List;
 import java.util.Map;
+
+import static ru.practicum.shareit.booking.BookingController.X_SHARER_USER_ID;
 
 public class BaseClient {
     protected final RestTemplate rest;
 
     public BaseClient(RestTemplate rest) {
         this.rest = rest;
+    }
+
+    private static ResponseEntity<Object> prepareGatewayResponse(ResponseEntity<Object> response) {
+        if (response.getStatusCode().is2xxSuccessful()) {
+            return response;
+        }
+
+        ResponseEntity.BodyBuilder responseBuilder = ResponseEntity.status(response.getStatusCode());
+
+        if (response.hasBody()) {
+            return responseBuilder.body(response.getBody());
+        }
+
+        return responseBuilder.build();
     }
 
     protected ResponseEntity<Object> get(String path) {
@@ -101,19 +115,5 @@ public class BaseClient {
             headers.set(X_SHARER_USER_ID, String.valueOf(userId));
         }
         return headers;
-    }
-
-    private static ResponseEntity<Object> prepareGatewayResponse(ResponseEntity<Object> response) {
-        if (response.getStatusCode().is2xxSuccessful()) {
-            return response;
-        }
-
-        ResponseEntity.BodyBuilder responseBuilder = ResponseEntity.status(response.getStatusCode());
-
-        if (response.hasBody()) {
-            return responseBuilder.body(response.getBody());
-        }
-
-        return responseBuilder.build();
     }
 }

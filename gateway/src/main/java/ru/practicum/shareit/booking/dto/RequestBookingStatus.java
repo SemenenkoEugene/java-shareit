@@ -10,10 +10,10 @@ public enum RequestBookingStatus {
     WAITING,
     REJECTED;
 
-    public static Optional<RequestBookingStatus> from(String stringState) {
-        for (RequestBookingStatus state : values()) {
-            if (state.name().equalsIgnoreCase(stringState)) {
-                return Optional.of(state);
+    public static Optional<RequestBookingStatus> from(String state) {
+        for (RequestBookingStatus value : values()) {
+            if (value.name().equalsIgnoreCase(state)) {
+                return Optional.of(value);
             }
         }
         return Optional.empty();

@@ -46,25 +46,25 @@ public class BookingController {
 
     @GetMapping()
     public ResponseEntity<Object> getAllByState(@RequestHeader(X_SHARER_USER_ID) Long userId,
-                                                @RequestParam(name = "state", defaultValue = "all") String stateParam,
+                                                @RequestParam(defaultValue = "ALL") String state,
                                                 @Valid @RequestParam(name = "from", defaultValue = "0") @Min(0) int from,
                                                 @Valid @RequestParam(name = "size", defaultValue = "20") @Min(1) int size) {
-        RequestBookingStatus state = RequestBookingStatus.from(stateParam)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown state: " + stateParam));
+        RequestBookingStatus status = RequestBookingStatus.from(state)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown state: " + state));
         log.info("Получен GET-запрос к эндпоинту: '/bookings' на получение " +
-                 "списка всех бронирований пользователя с ID={} с параметром STATE={}", userId, state);
-        return bookingClient.getAllByState(userId, state, from, size);
+                 "списка всех бронирований пользователя с ID={} с параметром STATE={}", userId, status);
+        return bookingClient.getAllByState(userId, status, from, size);
     }
 
     @GetMapping("/owner")
     public ResponseEntity<Object> getBookingsOwner(@RequestHeader(X_SHARER_USER_ID) Long userId,
-                                                   @RequestParam(name = "state", defaultValue = "all") String stateParam,
+                                                   @RequestParam(required = false, defaultValue = "ALL") String state,
                                                    @Valid @RequestParam(value = "from", defaultValue = "0") @Min(0) int from,
                                                    @Valid @RequestParam(value = "size", defaultValue = "20") @Min(1) int size) {
-        RequestBookingStatus state = RequestBookingStatus.from(stateParam)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown state: " + stateParam));
+        RequestBookingStatus status = RequestBookingStatus.from(state)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown state: " + state));
         log.info("Получен GET-запрос к эндпоинту: '/bookings/owner' на получение " +
-                 "списка всех бронирований вещей пользователя с ID={} с параметром STATE={}", userId, state);
-        return bookingClient.getAllByStateForOwner(userId, state, from, size);
+                 "списка всех бронирований вещей пользователя с ID={} с параметром STATE={}", userId, status);
+        return bookingClient.getAllByStateForOwner(userId, status, from, size);
     }
 }
