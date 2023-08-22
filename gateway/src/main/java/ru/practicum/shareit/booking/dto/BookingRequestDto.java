@@ -18,11 +18,11 @@ public class BookingRequestDto {
     @NotNull(message = "Время окончания не может быть пустым")
     @Future(message = "Время окончания должно быть в будущем")
     private LocalDateTime end;
+    @NotNull(message = "ID вещи не может быть пустым")
+    private Long itemId;
+
     @AssertTrue(message = "Время окончания должно быть после старта")
     private boolean isEndAfterStart() {
         return start == null || end == null || end.isAfter(start);
     }
-
-    @NotNull(message = "ID вещи не может быть пустым")
-    private Long itemId;
 }
