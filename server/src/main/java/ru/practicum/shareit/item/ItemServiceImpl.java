@@ -17,7 +17,6 @@ import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.request.ItemRequestRepository;
 import ru.practicum.shareit.user.UserRepository;
 
-import javax.validation.Validation;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -126,14 +125,10 @@ public class ItemServiceImpl implements ItemService {
         Optional.ofNullable(itemDto.getDescription()).ifPresent(item::setDescription);
         Optional.ofNullable(itemDto.getAvailable()).ifPresent(item::setAvailable);
 
-        if (isValid(ItemMapper.toItemDto(item))) {
-            try {
-                return ItemMapper.toItemDto(itemRepository.save(item));
-            } catch (DataIntegrityViolationException e) {
-                throw new ItemAlreadyExistsException(e.getMessage());
-            }
-        } else {
-            throw new ValidationException(INVALID_VALUE_FOR_UPDATE);
+        try {
+            return ItemMapper.toItemDto(itemRepository.save(item));
+        } catch (DataIntegrityViolationException e) {
+            throw new ItemAlreadyExistsException(e.getMessage());
         }
     }
 
@@ -141,12 +136,6 @@ public class ItemServiceImpl implements ItemService {
     @Transactional
     public void delete(Long itemId) {
         itemRepository.deleteById(itemId);
-    }
-
-    private boolean isValid(ItemDto itemDto) {
-        var validator = Validation.buildDefaultValidatorFactory().getValidator();
-        var violations = validator.validate(itemDto);
-        return violations.isEmpty();
     }
 
     private ItemDto addCommentsInfo(ItemDto itemDto) {

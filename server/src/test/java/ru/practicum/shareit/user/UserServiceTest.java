@@ -7,7 +7,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import ru.practicum.shareit.exception.UserAlreadyExistsException;
-import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.user.dto.UserDto;
 
 import java.util.Arrays;
@@ -124,26 +123,6 @@ class UserServiceTest {
 
         verify(userRepository, times(1)).findById(user.getId());
         verify(userRepository, times(1)).save(any(User.class));
-        verifyNoMoreInteractions(userRepository);
-    }
-
-    @Test
-    void updateUser_InvalidEmail() {
-        UserDto userDto = UserDto.builder()
-                .email("invalidEmail")
-                .build();
-
-        User user = getUser(1L);
-
-        when(userRepository.findById(user.getId()))
-                .thenReturn(Optional.of(user));
-
-        var validationException = assertThrows(ValidationException.class,
-                () -> userService.update(userDto, user.getId()));
-
-        assertThat(validationException.getMessage(), equalTo("Некорректное значение для обновления"));
-
-        verify(userRepository, times(1)).findById(user.getId());
         verifyNoMoreInteractions(userRepository);
     }
 

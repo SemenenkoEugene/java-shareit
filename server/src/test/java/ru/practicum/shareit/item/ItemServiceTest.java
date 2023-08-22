@@ -464,30 +464,6 @@ class ItemServiceTest {
     }
 
     @Test
-    void updateItemTest_InvalidDto() {
-        ItemDto inputDto = ItemDto.builder()
-                .name("")
-                .build();
-
-        User owner = getUser(1L);
-
-        Item item = getItem(10L);
-        item.setOwner(owner);
-
-        when(itemRepository.findById(item.getId()))
-                .thenReturn(Optional.of(item));
-
-        var validationException = assertThrows(ValidationException.class, () -> {
-            itemService.update(inputDto, item.getId(), owner.getId());
-        });
-
-        assertThat(validationException.getMessage(), equalTo("Некорректное значение для обновления"));
-
-        verify(itemRepository, times(1)).findById(item.getId());
-        verifyNoMoreInteractions(itemRepository, userRepository, bookingRepository, commentRepository, itemRequestRepository);
-    }
-
-    @Test
     void updateItemTest_Conflict() {
         ItemDto inputDto = ItemDto.builder().build();
 

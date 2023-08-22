@@ -6,10 +6,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.UserAlreadyExistsException;
-import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.user.dto.UserDto;
 
-import javax.validation.Validation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -44,14 +42,10 @@ public class UserServiceImpl implements UserService {
         Optional.ofNullable(userDto.getName()).ifPresent(user::setName);
         Optional.ofNullable(userDto.getEmail()).ifPresent(user::setEmail);
 
-        if (isValid(UserMapper.toUserDto(user))) {
-            try {
-                return UserMapper.toUserDto(userRepository.save(user));
-            } catch (DataIntegrityViolationException e) {
-                throw new UserAlreadyExistsException(USER_ALREADY_EXISTS);
-            }
-        } else {
-            throw new ValidationException(INVALID_VALUE_FOR_UPDATE);
+        try {
+            return UserMapper.toUserDto(userRepository.save(user));
+        } catch (DataIntegrityViolationException e) {
+            throw new UserAlreadyExistsException(USER_ALREADY_EXISTS);
         }
     }
 
@@ -75,15 +69,5 @@ public class UserServiceImpl implements UserService {
         return userRepository.findAll().stream()
                 .map(UserMapper::toUserDto)
                 .collect(Collectors.toCollection(ArrayList::new));
-    }
-
-    private boolean isValid(UserDto userDto) {
-        try {
-            var validator = Validation.buildDefaultValidatorFactory().getValidator();
-            var validate = validator.validate(userDto);
-            return validate.isEmpty();
-        } catch (ValidationException e) {
-            throw new ValidationException(e.getMessage());
-        }
     }
 }
