@@ -3,18 +3,18 @@ package ru.practicum.shareit.booking;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.booking.dto.BookingRequestDto;
 import ru.practicum.shareit.booking.dto.RequestBookingStatus;
-import ru.practicum.shareit.exception.UnsupportedStatusException;
 
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
 
+@Controller
 @Validated
 @Slf4j
-@RestController
 @RequestMapping(path = "/bookings")
 @RequiredArgsConstructor
 public class BookingController {
@@ -47,10 +47,10 @@ public class BookingController {
     @GetMapping()
     public ResponseEntity<Object> getAllByState(@RequestHeader(X_SHARER_USER_ID) Long userId,
                                                 @RequestParam(name = "state", defaultValue = "all") String stateParam,
-                                                @RequestParam(name = "from", defaultValue = "0") @Min(0) int from,
-                                                @RequestParam(name = "size", defaultValue = "20") @Min(1) int size) {
+                                                @Valid @RequestParam(name = "from", defaultValue = "0") @Min(0) int from,
+                                                @Valid @RequestParam(name = "size", defaultValue = "20") @Min(1) int size) {
         RequestBookingStatus state = RequestBookingStatus.from(stateParam)
-                .orElseThrow(() -> new UnsupportedStatusException("Unknown state: " + stateParam));
+                .orElseThrow(() -> new IllegalArgumentException("Unknown state: " + stateParam));
         log.info("Получен GET-запрос к эндпоинту: '/bookings' на получение " +
                  "списка всех бронирований пользователя с ID={} с параметром STATE={}", userId, state);
         return bookingClient.getAllByState(userId, state, from, size);
@@ -58,11 +58,11 @@ public class BookingController {
 
     @GetMapping("/owner")
     public ResponseEntity<Object> getBookingsOwner(@RequestHeader(X_SHARER_USER_ID) Long userId,
-                                                   @RequestParam(required = false, defaultValue = "ALL") String stateParam,
-                                                   @RequestParam(required = false, defaultValue = "0") @Min(0) int from,
-                                                   @RequestParam(required = false, defaultValue = "20") @Min(1) int size) {
+                                                   @RequestParam(name = "state", defaultValue = "all") String stateParam,
+                                                   @Valid @RequestParam(value = "from", defaultValue = "0") @Min(0) int from,
+                                                   @Valid @RequestParam(value = "size", defaultValue = "20") @Min(1) int size) {
         RequestBookingStatus state = RequestBookingStatus.from(stateParam)
-                .orElseThrow(() -> new UnsupportedStatusException("Unknown state: " + stateParam));
+                .orElseThrow(() -> new IllegalArgumentException("Unknown state: " + stateParam));
         log.info("Получен GET-запрос к эндпоинту: '/bookings/owner' на получение " +
                  "списка всех бронирований вещей пользователя с ID={} с параметром STATE={}", userId, state);
         return bookingClient.getAllByStateForOwner(userId, state, from, size);
