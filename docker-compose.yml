@@ -29,5 +29,5 @@ services:
       - "6541:5432"
     environment:
       - POSTGRES_DB=shareit
-      - POSTGRES_USER=postgres
+      - POSTGRES_USER=shareit
       - POSTGRES_PASSWORD=admin
