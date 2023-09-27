@@ -7,6 +7,7 @@
 - Spring Data JPA
 - БД - PostgreSQL
 - RESTful API
+- JUnit 5
 
 В приложении реализуются следующие сущности:
 1. Класс **User** с полями:
