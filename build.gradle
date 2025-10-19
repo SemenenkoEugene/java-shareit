@@ -1,0 +1,82 @@
+plugins {
+    id 'org.springframework.boot' version '3.5.6' apply false
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'java'
+    id 'checkstyle'
+//    id 'com.github.spotbugs' version '6.0.12'
+    id 'jacoco'
+    id 'io.freefair.lombok' version '8.10' apply false
+}
+
+group = 'ru.practicum'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'io.spring.dependency-management'
+    apply plugin: 'jacoco'
+    apply plugin: 'checkstyle'
+//    apply plugin: 'com.github.spotbugs'
+    apply plugin: 'io.freefair.lombok'
+
+    group = rootProject.group
+    version = rootProject.version
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        checkstyle "com.puppycrawl.tools:checkstyle:10.12.3"
+    }
+
+    checkstyle {
+        toolVersion = '10.12.3'
+        configFile = rootProject.file('checkstyle.xml')
+        ignoreFailures = false
+        showViolations = true
+    }
+
+    jacoco {
+        toolVersion = "0.8.12"
+    }
+
+    jacocoTestReport {
+        reports {
+            xml.required = true
+            html.required = true
+        }
+    }
+
+    jacocoTestCoverageVerification {
+        violationRules {
+            rule {
+                limit {
+                    counter = 'LINE'
+                    value = 'COVEREDRATIO'
+                    minimum = 0.90
+                }
+            }
+        }
+    }
+
+    test {
+        useJUnitPlatform()
+        systemProperty "spring.profiles.active", "test"
+        finalizedBy jacocoTestReport, jacocoTestCoverageVerification
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.release = 21
+    }
+
+    tasks.withType(Checkstyle).configureEach {
+        classpath = files()
+    }
+
+}

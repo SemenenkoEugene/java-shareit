@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import ru.practicum.shareit.request.ItemRequest;
 import ru.practicum.shareit.user.User;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 @Data
 @Entity

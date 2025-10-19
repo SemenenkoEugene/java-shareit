@@ -1,13 +1,13 @@
 package ru.practicum.shareit.request;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.request.dto.ItemRequestCreateDto;
 
-import javax.validation.Valid;
-import javax.validation.constraints.Min;
 
 @Validated
 @RestController

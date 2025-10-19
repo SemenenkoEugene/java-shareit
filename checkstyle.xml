@@ -252,6 +252,6 @@
 	<module name="SuppressWarningsFilter"/>
 	<module name="SuppressionFilter">
 		<property name="file" value="suppressions.xml"/>
-		<property name="optional" value="false"/>
+		<property name="optional" value="true"/>
 	</module>
 </module>
