@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.PropertySource;
 
 @SpringBootApplication
-@PropertySource(value = "classpath:applicationServer.properties")
+@PropertySource(value = "classpath:applicationServer.yml")
 public class ShareItApp {
 
     public static void main(String[] args) {
