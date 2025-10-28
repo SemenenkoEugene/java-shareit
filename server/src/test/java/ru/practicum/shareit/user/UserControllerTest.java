@@ -1,33 +1,33 @@
 package ru.practicum.shareit.user;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import ru.practicum.shareit.user.dto.UserDto;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
+@ExtendWith(SpringExtension.class)
 @WebMvcTest(controllers = UserController.class)
 class UserControllerTest {
+
+    private static final UserDto USER_DTO = UserDto.builder()
+            .id(1L)
+            .name("User 1")
+            .email("Email1@test.ru")
+            .build();
+
 
     @Autowired
     private MockMvc mockMvc;
@@ -38,95 +38,77 @@ class UserControllerTest {
     @MockitoBean
     private UserService userService;
 
+    @SneakyThrows
     @Test
-    void createUserTest() throws Exception {
-        UserDto userDto = getUserDto(1L);
+    void createUserTest() {
+        Mockito.when(userService.create(Mockito.any())).thenReturn(USER_DTO);
 
-        when(userService.create(any(UserDto.class)))
-                .thenReturn(userDto);
-
-        mockMvc.perform(post("/users")
-                        .content(objectMapper.writeValueAsString(userDto))
+        mockMvc.perform(MockMvcRequestBuilders.post("/users")
+                        .content(objectMapper.writeValueAsString(USER_DTO))
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(userDto.getId()));
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(USER_DTO.getId()));
 
-        verify(userService, times(1)).create(any(UserDto.class));
-        verifyNoMoreInteractions(userService);
+        Mockito.verify(userService).create(Mockito.any(UserDto.class));
+        Mockito.verifyNoMoreInteractions(userService);
     }
 
+    @SneakyThrows
     @Test
-    void updateUserTest() throws Exception {
-        UserDto userDto = getUserDto(1L);
+    void updateUserTest() {
 
-        when(userService.update(any(UserDto.class), eq(userDto.getId())))
-                .thenReturn(userDto);
+        Mockito.when(userService.update(Mockito.any(), Mockito.anyLong())).thenReturn(USER_DTO);
 
-        mockMvc.perform(patch("/users/" + userDto.getId())
-                        .content(objectMapper.writeValueAsString(userDto))
+        mockMvc.perform(MockMvcRequestBuilders.patch("/users/" + USER_DTO.getId())
+                        .content(objectMapper.writeValueAsString(USER_DTO))
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(userDto.getId()));
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(USER_DTO.getId()));
 
-        verify(userService, times(1))
-                .update(any(UserDto.class), eq(userDto.getId()));
-        verifyNoMoreInteractions(userService);
+        Mockito.verify(userService).update(Mockito.any(UserDto.class), Mockito.eq(USER_DTO.getId()));
+        Mockito.verifyNoMoreInteractions(userService);
     }
 
     @Test
-    void deleteUserTest() throws Exception {
-        mockMvc.perform(delete("/users/1"))
-                .andExpect(status().isOk());
+    @SneakyThrows
+    void deleteUserTest() {
+        mockMvc.perform(MockMvcRequestBuilders.delete("/users/1"))
+                .andExpect(MockMvcResultMatchers.status().isOk());
 
-        verify(userService, times(1)).delete(1L);
-        verifyNoMoreInteractions(userService);
+        Mockito.verify(userService).delete(1L);
+        Mockito.verifyNoMoreInteractions(userService);
     }
 
+    @SneakyThrows
     @Test
-    void getUsersTest() throws Exception {
-        UserDto userDto1 = getUserDto(1L);
-        UserDto userDto2 = getUserDto(2L);
+    void getUsersTest() {
 
-        List<UserDto> userDtoList = Arrays.asList(
-                userDto1,
-                userDto2
-        );
+        Mockito.when(userService.getUsers()).thenReturn(List.of(USER_DTO));
 
-        when(userService.getUsers()).thenReturn(userDtoList);
+        mockMvc.perform(MockMvcRequestBuilders.get("/users"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$[0].id").value(USER_DTO.getId()));
 
-        mockMvc.perform(get("/users"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(userDto1.getId()))
-                .andExpect(jsonPath("$[1].id").value(userDto2.getId()));
-
-        verify(userService, times(1)).getUsers();
-        verifyNoMoreInteractions(userService);
+        Mockito.verify(userService).getUsers();
+        Mockito.verifyNoMoreInteractions(userService);
     }
 
+    @SneakyThrows
     @Test
-    void getUserByIdTest() throws Exception {
-        UserDto userDto = getUserDto(1L);
+    void getUserByIdTest() {
 
-        when(userService.getUserById(userDto.getId()))
-                .thenReturn(userDto);
+        Mockito.when(userService.getUserById(Mockito.anyLong())).thenReturn(USER_DTO);
 
-        mockMvc.perform(get("/users/" + userDto.getId()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(userDto.getId()));
+        mockMvc.perform(MockMvcRequestBuilders.get("/users/" + USER_DTO.getId()))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(USER_DTO.getId()));
 
-        verify(userService, times(1)).getUserById(userDto.getId());
-        verifyNoMoreInteractions(userService);
+        Mockito.verify(userService).getUserById(USER_DTO.getId());
+        Mockito.verifyNoMoreInteractions(userService);
     }
 
-    private UserDto getUserDto(Long id) {
-        return UserDto.builder()
-                .id(id)
-                .name("User " + id)
-                .email("Email" + id + "@test.ru")
-                .build();
-    }
 }

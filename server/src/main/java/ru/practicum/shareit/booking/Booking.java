@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 @Data
 @Entity
 @Table(name = "bookings")
-@Builder
+@Builder(toBuilder = true)
 @AllArgsConstructor
 @NoArgsConstructor
 public class Booking {

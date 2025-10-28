@@ -1,37 +1,36 @@
 package ru.practicum.shareit.item;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.anyInt;
-import static org.mockito.Mockito.anyLong;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = ItemController.class)
 class ItemControllerTest {
+
+    private static final String X_SHARER_USER_ID = "X-Sharer-User-Id";
+    private static final Long USER_ID = 1L;
+    private static final Long ITEM_ID = 10L;
+
+    private static final CommentDto REQUEST_DTO = CommentDto.builder()
+            .text("Комментарий")
+            .build();
+
+    private static final CommentDto COMMENT_DTO = CommentDto.builder()
+            .id(100L)
+            .build();
 
     @Autowired
     private MockMvc mockMvc;
@@ -43,156 +42,130 @@ class ItemControllerTest {
     private ItemService itemService;
 
     @Test
-    void createTest() throws Exception {
-        Long userId = 1L;
+    @SneakyThrows
+    void createTest() {
 
-        ItemDto requestDto = getRequestDto();
-        ItemDto responseDto = getItemResponseDto(10L);
+        final ItemDto requestDto = getRequestDto();
+        final ItemDto responseDto = getItemResponseDto(ITEM_ID);
 
-        when(itemService.create(any(ItemDto.class), eq(userId)))
-                .thenReturn(responseDto);
+        Mockito.when(itemService.create(Mockito.any(), Mockito.anyLong())).thenReturn(responseDto);
 
-        mockMvc.perform(post("/items")
-                        .header("X-Sharer-User-Id", userId)
+        mockMvc.perform(MockMvcRequestBuilders.post("/items")
+                        .header(X_SHARER_USER_ID, USER_ID)
                         .content(objectMapper.writeValueAsString(requestDto))
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(responseDto.getId()));
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(responseDto.getId()));
 
-        verify(itemService, times(1)).create(any(ItemDto.class), eq(userId));
-        verifyNoMoreInteractions(itemService);
+        Mockito.verify(itemService).create(Mockito.any(ItemDto.class), Mockito.eq(USER_ID));
+        Mockito.verifyNoMoreInteractions(itemService);
     }
 
     @Test
-    void createCommentTest() throws Exception {
-        Long userId = 1L;
-        Long itemId = 10L;
+    @SneakyThrows
+    void createCommentTest() {
 
-        CommentDto requestDto = CommentDto.builder()
-                .text("Комментарий")
-                .build();
+        Mockito.when(itemService.createComment(Mockito.any(), Mockito.anyLong(), Mockito.anyLong())).thenReturn(COMMENT_DTO);
 
-        CommentDto responseDto = CommentDto.builder()
-                .id(100L)
-                .build();
-
-        when(itemService.createComment(any(CommentDto.class), eq(userId), eq(itemId)))
-                .thenReturn(responseDto);
-
-        mockMvc.perform(post("/items/" + itemId + "/comment")
-                        .header("X-Sharer-User-Id", userId)
-                        .content(objectMapper.writeValueAsString(requestDto))
+        mockMvc.perform(MockMvcRequestBuilders.post("/items/" + ITEM_ID + "/comment")
+                        .header(X_SHARER_USER_ID, USER_ID)
+                        .content(objectMapper.writeValueAsString(REQUEST_DTO))
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(responseDto.getId()));
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(COMMENT_DTO.getId()));
 
-        verify(itemService, times(1)).createComment(any(CommentDto.class), eq(userId), eq(itemId));
-        verifyNoMoreInteractions(itemService);
+        Mockito.verify(itemService).createComment(Mockito.any(CommentDto.class), Mockito.eq(USER_ID), Mockito.eq(ITEM_ID));
+        Mockito.verifyNoMoreInteractions(itemService);
     }
 
+    @SneakyThrows
     @Test
-    void getItemByIdTest() throws Exception {
-        Long userId = 1L;
+    void getItemByIdTest() {
 
-        ItemDto responseDto = getItemResponseDto(10L);
+        final ItemDto responseDto = getItemResponseDto(ITEM_ID);
 
-        when(itemService.getItemById(anyLong(), anyLong()))
-                .thenReturn(responseDto);
+        Mockito.when(itemService.getItemById(Mockito.anyLong(), Mockito.anyLong())).thenReturn(responseDto);
 
-        mockMvc.perform(get("/items/" + responseDto.getId())
-                        .header("X-Sharer-User-Id", userId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(responseDto.getId()));
+        mockMvc.perform(MockMvcRequestBuilders.get("/items/" + responseDto.getId())
+                        .header(X_SHARER_USER_ID, USER_ID))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(responseDto.getId()));
 
-        verify(itemService, times(1)).getItemById(anyLong(), anyLong());
-        verifyNoMoreInteractions(itemService);
+        Mockito.verify(itemService).getItemById(Mockito.eq(USER_ID), Mockito.eq(ITEM_ID));
+        Mockito.verifyNoMoreInteractions(itemService);
     }
 
+    @SneakyThrows
     @Test
-    void getItemsByOwnerIdTest() throws Exception {
-        Long userId = 1L;
+    void getItemsByOwnerIdTest() {
+        final ItemDto responseDto1 = getItemResponseDto(ITEM_ID);
 
-        ItemDto responseDto1 = getItemResponseDto(10L);
-        ItemDto responseDto2 = getItemResponseDto(11L);
+        final List<ItemDto> responseDtoList = List.of(responseDto1);
 
-        List<ItemDto> responseDtoList = Arrays.asList(
-                responseDto1,
-                responseDto2
-        );
+        Mockito.when(itemService.getItemsByOwnerId(Mockito.anyLong(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(responseDtoList);
 
-        when(itemService.getItemsByOwnerId(eq(userId), anyInt(), anyInt()))
+        mockMvc.perform(MockMvcRequestBuilders.get("/items")
+                        .header(X_SHARER_USER_ID, USER_ID))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$[0].id").value(responseDto1.getId()));
+
+        Mockito.verify(itemService).getItemsByOwnerId(Mockito.eq(USER_ID), Mockito.anyInt(), Mockito.anyInt());
+        Mockito.verifyNoMoreInteractions(itemService);
+    }
+
+    @SneakyThrows
+    @Test
+    void getItemsBySearchQueryTest() {
+        final ItemDto responseDto1 = getItemResponseDto(ITEM_ID);
+        final List<ItemDto> responseDtoList = List.of(responseDto1);
+
+        Mockito.when(itemService.getItemsBySearchQuery(Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt()))
                 .thenReturn(responseDtoList);
 
-        mockMvc.perform(get("/items")
-                        .header("X-Sharer-User-Id", userId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(responseDto1.getId()))
-                .andExpect(jsonPath("$[1].id").value(responseDto2.getId()));
-
-        verify(itemService, times(1)).getItemsByOwnerId(eq(userId), anyInt(), anyInt());
-        verifyNoMoreInteractions(itemService);
-    }
-
-    @Test
-    void getItemsBySearchQueryTest() throws Exception {
-        ItemDto responseDto1 = getItemResponseDto(10L);
-        ItemDto responseDto2 = getItemResponseDto(11L);
-
-        List<ItemDto> responseDtoList = Arrays.asList(
-                responseDto1,
-                responseDto2
-        );
-
-        when(itemService.getItemsBySearchQuery(anyString(), anyInt(), anyInt()))
-                .thenReturn(responseDtoList);
-
-        mockMvc.perform(get("/items/search")
+        mockMvc.perform(MockMvcRequestBuilders.get("/items/search")
                         .param("text", "someText"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(responseDto1.getId()))
-                .andExpect(jsonPath("$[1].id").value(responseDto2.getId()));
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$[0].id").value(responseDto1.getId()));
 
-        verify(itemService, times(1)).getItemsBySearchQuery(eq("someText"), anyInt(), anyInt());
-        verifyNoMoreInteractions(itemService);
+        Mockito.verify(itemService).getItemsBySearchQuery(Mockito.eq("someText"), Mockito.anyInt(), Mockito.anyInt());
+        Mockito.verifyNoMoreInteractions(itemService);
     }
 
+    @SneakyThrows
     @Test
-    void updateItemTest() throws Exception {
-        Long userId = 1L;
-        Long itemId = 10L;
+    void updateItemTest() {
+        final ItemDto requestDto = getRequestDto();
+        final ItemDto responseDto = getItemResponseDto(ITEM_ID);
 
-        ItemDto requestDto = getRequestDto();
-        ItemDto responseDto = getItemResponseDto(10L);
+        Mockito.when(itemService.update(Mockito.any(), Mockito.anyLong(), Mockito.anyLong())).thenReturn(responseDto);
 
-        when(itemService.update(any(ItemDto.class), eq(itemId), eq(userId)))
-                .thenReturn(responseDto);
-
-        mockMvc.perform(patch("/items/" + itemId)
-                        .header("X-Sharer-User-Id", userId)
+        mockMvc.perform(MockMvcRequestBuilders.patch("/items/" + ITEM_ID)
+                        .header(X_SHARER_USER_ID, USER_ID)
                         .content(objectMapper.writeValueAsString(requestDto))
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(responseDto.getId()));
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(responseDto.getId()));
 
-        verify(itemService, times(1)).update(any(ItemDto.class), eq(itemId), eq(userId));
-        verifyNoMoreInteractions(itemService);
+        Mockito.verify(itemService).update(Mockito.any(ItemDto.class), Mockito.eq(ITEM_ID), Mockito.eq(USER_ID));
+        Mockito.verifyNoMoreInteractions(itemService);
     }
 
+    @SneakyThrows
     @Test
-    void deleteItemTest() throws Exception {
-        Long itemId = 1L;
+    void deleteItemTest() {
+        final Long itemId = 1L;
 
-        mockMvc.perform(delete("/items/" + itemId))
-                .andExpect(status().isOk());
+        mockMvc.perform(MockMvcRequestBuilders.delete("/items/" + itemId))
+                .andExpect(MockMvcResultMatchers.status().isOk());
 
-        verify(itemService, times(1)).delete(itemId);
-        verifyNoMoreInteractions(itemService);
+        Mockito.verify(itemService).delete(Mockito.eq(itemId));
+        Mockito.verifyNoMoreInteractions(itemService);
     }
 
     private ItemDto getRequestDto() {
@@ -203,7 +176,7 @@ class ItemControllerTest {
                 .build();
     }
 
-    private ItemDto getItemResponseDto(Long id) {
+    private ItemDto getItemResponseDto(final Long id) {
         return ItemDto.builder()
                 .id(id)
                 .build();

@@ -1,5 +1,6 @@
 package ru.practicum.shareit.item;
 
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -9,8 +10,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.User;
-
-import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
 @DataJpaTest
 @Transactional
@@ -24,7 +23,7 @@ class ItemRepositoryTest {
 
     @Test
     void testFindBySearchText() {
-        User owner = testEntityManager.persist(User.builder()
+        final User owner = testEntityManager.persist(User.builder()
                 .name("Owner")
                 .email("owner@user.ru")
                 .build());
@@ -57,10 +56,10 @@ class ItemRepositoryTest {
                 .owner(owner)
                 .build());
 
-        Pageable pageable = PageRequest.of(0, 10);
+        final Pageable pageable = PageRequest.of(0, 10);
 
-        assertThat(itemRepository.findBySearchText("МяЧ", pageable)).size().isEqualTo(0);
-        assertThat(itemRepository.findBySearchText("Про", pageable)).size().isEqualTo(3);
-        assertThat(itemRepository.findBySearchText("профессионал", pageable)).size().isEqualTo(2);
+        Assertions.assertThat(itemRepository.findBySearchText("МяЧ", pageable)).size().isEqualTo(0);
+        Assertions.assertThat(itemRepository.findBySearchText("Про", pageable)).size().isEqualTo(3);
+        Assertions.assertThat(itemRepository.findBySearchText("профессионал", pageable)).size().isEqualTo(2);
     }
 }

@@ -1,38 +1,38 @@
 package ru.practicum.shareit.booking;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import ru.practicum.shareit.booking.dto.BookingRequestDto;
 import ru.practicum.shareit.booking.dto.BookingResponseDto;
 import ru.practicum.shareit.booking.dto.RequestBookingStatus;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
-
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyBoolean;
-import static org.mockito.Mockito.anyInt;
-import static org.mockito.Mockito.anyLong;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = BookingController.class)
 class BookingControllerTest {
+
+    private static final Long USER_ID = 1L;
+    private static final BookingResponseDto RESPONSE_DTO_1 = BookingResponseDto.builder()
+            .id(10L)
+            .build();
+
+    private static final BookingResponseDto RESPONSE_DTO_2 = BookingResponseDto.builder()
+            .id(11L)
+            .build();
+
+    private static final List<BookingResponseDto> RESPONSE_DTO_LIST = List.of(RESPONSE_DTO_1, RESPONSE_DTO_2);
+    private static final String X_SHARER_USER_ID = "X-Sharer-User-Id";
 
     @Autowired
     private MockMvc mockMvc;
@@ -43,122 +43,97 @@ class BookingControllerTest {
     @MockitoBean
     private BookingService bookingService;
 
+    @SneakyThrows
     @Test
-    void getByIdTest() throws Exception {
-        Long userId = 1L;
+    void getByIdTest() {
 
-        BookingResponseDto responseDto = getBookingResponseDto(10L);
+        Mockito.when(bookingService.getById(Mockito.anyLong(), Mockito.anyLong()))
+                .thenReturn(RESPONSE_DTO_1);
 
-        when(bookingService.getById(anyLong(), anyLong()))
-                .thenReturn(responseDto);
+        mockMvc.perform(MockMvcRequestBuilders.get("/bookings/" + RESPONSE_DTO_1.getId())
+                        .header(X_SHARER_USER_ID, USER_ID))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(RESPONSE_DTO_1.getId()));
 
-        mockMvc.perform(get("/bookings/" + responseDto.getId())
-                        .header("X-Sharer-User-Id", userId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(responseDto.getId()));
-
-        verify(bookingService, times(1)).getById(anyLong(), anyLong());
-        verifyNoMoreInteractions(bookingService);
+        Mockito.verify(bookingService, Mockito.times(1)).getById(Mockito.anyLong(), Mockito.eq(USER_ID));
+        Mockito.verifyNoMoreInteractions(bookingService);
     }
 
+    @SneakyThrows
     @Test
-    void getAllByStateTest() throws Exception {
-        Long userId = 1L;
+    void getAllByStateTest() {
 
-        BookingResponseDto responseDto1 = getBookingResponseDto(10L);
-        BookingResponseDto responseDto2 = getBookingResponseDto(11L);
+        Mockito.when(bookingService.getAllByState(Mockito.any(), Mockito.anyLong(), Mockito.anyInt(), Mockito.anyInt()))
+                .thenReturn(RESPONSE_DTO_LIST);
 
-        List<BookingResponseDto> responseDtoList = Arrays.asList(
-                responseDto1,
-                responseDto2
-        );
+        mockMvc.perform(MockMvcRequestBuilders.get("/bookings")
+                        .header(X_SHARER_USER_ID, USER_ID))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$[0].id").value(RESPONSE_DTO_1.getId()))
+                .andExpect(MockMvcResultMatchers.jsonPath("$[1].id").value(RESPONSE_DTO_2.getId()));
 
-        when(bookingService.getAllByState(any(), eq(userId), anyInt(), anyInt()))
-                .thenReturn(responseDtoList);
-
-        mockMvc.perform(get("/bookings")
-                        .header("X-Sharer-User-Id", userId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(responseDto1.getId()))
-                .andExpect(jsonPath("$[1].id").value(responseDto2.getId()));
-
-        verify(bookingService, times(1)).getAllByState(eq(RequestBookingStatus.ALL), eq(userId), anyInt(), anyInt());
-        verifyNoMoreInteractions(bookingService);
+        Mockito.verify(bookingService, Mockito.times(1)).getAllByState(Mockito.eq(RequestBookingStatus.ALL), Mockito.eq(USER_ID), Mockito.anyInt(), Mockito.anyInt());
+        Mockito.verifyNoMoreInteractions(bookingService);
     }
 
+    @SneakyThrows
     @Test
-    void getAllByStateForOwnerTest() throws Exception {
-        Long userId = 1L;
+    void getAllByStateForOwnerTest() {
 
-        BookingResponseDto responseDto1 = getBookingResponseDto(10L);
-        BookingResponseDto responseDto2 = getBookingResponseDto(11L);
+        Mockito.when(bookingService.getAllByStateForOwner(Mockito.any(), Mockito.anyLong(), Mockito.anyInt(), Mockito.anyInt()))
+                .thenReturn(RESPONSE_DTO_LIST);
 
-        List<BookingResponseDto> responseDtoList = Arrays.asList(
-                responseDto1,
-                responseDto2
-        );
+        mockMvc.perform(MockMvcRequestBuilders.get("/bookings/owner")
+                        .header(X_SHARER_USER_ID, USER_ID))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$[0].id").value(RESPONSE_DTO_1.getId()))
+                .andExpect(MockMvcResultMatchers.jsonPath("$[1].id").value(RESPONSE_DTO_2.getId()));
 
-        when(bookingService.getAllByStateForOwner(any(), eq(userId), anyInt(), anyInt())).thenReturn(responseDtoList);
-
-        mockMvc.perform(get("/bookings/owner")
-                        .header("X-Sharer-User-Id", userId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(responseDto1.getId()))
-                .andExpect(jsonPath("$[1].id").value(responseDto2.getId()));
-
-        verify(bookingService, times(1)).getAllByStateForOwner(eq(RequestBookingStatus.ALL), eq(userId), anyInt(), anyInt());
-        verifyNoMoreInteractions(bookingService);
+        Mockito.verify(bookingService, Mockito.times(1)).getAllByStateForOwner(Mockito.eq(RequestBookingStatus.ALL), Mockito.eq(USER_ID), Mockito.anyInt(), Mockito.anyInt());
+        Mockito.verifyNoMoreInteractions(bookingService);
     }
 
+    @SneakyThrows
     @Test
-    void createTest() throws Exception {
-        Long userId = 1L;
+    void createTest() {
 
-        BookingRequestDto requestDto = BookingRequestDto.builder()
+        final BookingRequestDto requestDto = BookingRequestDto.builder()
                 .start(LocalDateTime.now().plusDays(10))
                 .end(LocalDateTime.now().plusDays(20))
                 .itemId(1L)
                 .build();
 
-        BookingResponseDto responseDto = getBookingResponseDto(10L);
 
-        when(bookingService.create(any(BookingRequestDto.class), eq(userId))).thenReturn(responseDto);
+        Mockito.when(bookingService.create(Mockito.any(), Mockito.anyLong())).thenReturn(RESPONSE_DTO_1);
 
-        mockMvc.perform(post("/bookings")
-                        .header("X-Sharer-User-Id", userId)
+        mockMvc.perform(MockMvcRequestBuilders.post("/bookings")
+                        .header(X_SHARER_USER_ID, USER_ID)
                         .content(objectMapper.writeValueAsString(requestDto))
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(responseDto.getId()));
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(RESPONSE_DTO_1.getId()));
 
-        verify(bookingService, times(1)).create(any(BookingRequestDto.class), eq(userId));
-        verifyNoMoreInteractions(bookingService);
+        Mockito.verify(bookingService, Mockito.times(1)).create(Mockito.any(BookingRequestDto.class), Mockito.eq(USER_ID));
+        Mockito.verifyNoMoreInteractions(bookingService);
     }
 
+    @SneakyThrows
     @Test
-    void approveTest() throws Exception {
-        Long userId = 1L;
+    void approveTest() {
 
-        BookingResponseDto responseDto = getBookingResponseDto(10L);
+        Mockito.when(bookingService.approve(Mockito.anyLong(), Mockito.anyBoolean(), Mockito.anyLong()))
+                .thenReturn(RESPONSE_DTO_1);
 
-        when(bookingService.approve(anyLong(), anyBoolean(), anyLong()))
-                .thenReturn(responseDto);
-
-        mockMvc.perform(patch("/bookings/" + responseDto.getId())
-                        .header("X-Sharer-User-Id", userId)
+        mockMvc.perform(MockMvcRequestBuilders.patch("/bookings/" + RESPONSE_DTO_1.getId())
+                        .header(X_SHARER_USER_ID, USER_ID)
                         .param("approved", "false"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(responseDto.getId()));
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(RESPONSE_DTO_1.getId()));
 
-        verify(bookingService, times(1)).approve(anyLong(), eq(false), anyLong());
-        verifyNoMoreInteractions(bookingService);
+        Mockito.verify(bookingService, Mockito.times(1)).approve(Mockito.anyLong(), Mockito.eq(false), Mockito.anyLong());
+        Mockito.verifyNoMoreInteractions(bookingService);
     }
 
-    private BookingResponseDto getBookingResponseDto(Long id) {
-        return BookingResponseDto.builder()
-                .id(id)
-                .build();
-    }
 }

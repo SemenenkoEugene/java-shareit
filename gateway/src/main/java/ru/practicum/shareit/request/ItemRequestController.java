@@ -18,28 +18,28 @@ public class ItemRequestController {
     private final ItemRequestClient itemRequestClient;
 
     @GetMapping
-    public ResponseEntity<Object> getAllByOwnerId(@RequestHeader(X_SHARER_USER_ID) Long userId,
-                                                  @RequestParam(required = false, defaultValue = "0") @Min(0) int from,
-                                                  @RequestParam(required = false, defaultValue = "20") @Min(1) int size) {
+    public ResponseEntity<Object> getAllByOwnerId(@RequestHeader(X_SHARER_USER_ID) final Long userId,
+                                                  @RequestParam(required = false, defaultValue = "0") @Min(0) final int from,
+                                                  @RequestParam(required = false, defaultValue = "20") @Min(1) final int size) {
         return itemRequestClient.getAllByOwnerId(userId, from, size);
     }
 
     @GetMapping("/all")
-    public ResponseEntity<Object> getAll(@RequestHeader(X_SHARER_USER_ID) Long userId,
-                                         @RequestParam(required = false, defaultValue = "0") @Min(0) int from,
-                                         @RequestParam(required = false, defaultValue = "20") @Min(1) int size) {
+    public ResponseEntity<Object> getAll(@RequestHeader(X_SHARER_USER_ID) final Long userId,
+                                         @RequestParam(required = false, defaultValue = "0") @Min(0) final int from,
+                                         @RequestParam(required = false, defaultValue = "20") @Min(1) final int size) {
         return itemRequestClient.getAll(userId, from, size);
     }
 
     @GetMapping("/{itemRequestId}")
-    public ResponseEntity<Object> getById(@RequestHeader(X_SHARER_USER_ID) Long userId,
-                                          @PathVariable Long itemRequestId) {
+    public ResponseEntity<Object> getById(@RequestHeader(X_SHARER_USER_ID) final Long userId,
+                                          @PathVariable final Long itemRequestId) {
         return itemRequestClient.getById(userId, itemRequestId);
     }
 
     @PostMapping
-    public ResponseEntity<Object> create(@RequestHeader(X_SHARER_USER_ID) Long userId,
-                                         @Valid @RequestBody ItemRequestCreateDto itemRequestCreateDto) {
+    public ResponseEntity<Object> create(@RequestHeader(X_SHARER_USER_ID) final Long userId,
+                                         @Valid @RequestBody final ItemRequestCreateDto itemRequestCreateDto) {
         return itemRequestClient.create(userId, itemRequestCreateDto);
     }
 }

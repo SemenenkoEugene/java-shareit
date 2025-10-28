@@ -14,12 +14,19 @@ import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.model.Comment;
+import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.request.ItemRequest;
 import ru.practicum.shareit.request.ItemRequestRepository;
+import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserRepository;
 
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +35,6 @@ public class ItemServiceImpl implements ItemService {
     private static final String USER_NOT_FOUND = "Пользователь не найден";
     private static final String REQUEST_NOT_FOUND = "Запрос не найден";
     private static final String ITEM_NOT_FOUND = "Вещь не найдена";
-    private static final String INVALID_VALUE_FOR_UPDATE = "Некорректное значение для обновления";
 
     private final ItemRepository itemRepository;
     private final BookingRepository bookingRepository;
@@ -38,15 +44,15 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     @Transactional
-    public ItemDto create(ItemDto itemDto, Long userId) {
-        var user = userRepository.findById(userId)
+    public ItemDto create(final ItemDto itemDto, final Long userId) {
+        final User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
 
-        var item = ItemMapper.toItem(itemDto);
+        final Item item = ItemMapper.toItem(itemDto);
         item.setOwner(user);
 
         if (itemDto.getRequestId() != null) {
-            var itemRequest = itemRequestRepository.findById(itemDto.getRequestId())
+            final ItemRequest itemRequest = itemRequestRepository.findById(itemDto.getRequestId())
                     .orElseThrow(() -> new NotFoundException(REQUEST_NOT_FOUND));
             item.setItemRequest(itemRequest);
         }
@@ -56,20 +62,19 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     @Transactional
-    public CommentDto createComment(CommentDto commentDto, Long userId, Long itemId) {
-        var user = userRepository.findById(userId)
+    public CommentDto createComment(final CommentDto commentDto, final Long userId, final Long itemId) {
+        final User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
 
-        var item = itemRepository.findById(itemId)
+        final Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException(ITEM_NOT_FOUND));
 
-        var comment = CommentMapper.toComment(commentDto);
+        final Comment comment = CommentMapper.toComment(commentDto);
 
-        if (bookingRepository.findByItemIdAndUserIdAndExpiredEndDateAndApprovedStatus(itemId,
-                userId,
-                LocalDateTime.now()).isEmpty()) {
+        if (bookingRepository.findByItemIdAndUserIdAndExpiredEndDateAndApprovedStatus(itemId, userId, LocalDateTime.now()).isEmpty()) {
             throw new ValidationException("Комментарии можно оставлять только к тем вещам, на которые было бронирование");
         }
+
         comment.setAuthor(user);
         comment.setItem(item);
         comment.setCreated(LocalDateTime.now());
@@ -79,43 +84,46 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     @Transactional(readOnly = true)
-    public ItemDto getItemById(Long userId, Long itemId) {
-        var item = itemRepository.findById(itemId)
+    public ItemDto getItemById(final Long userId, final Long itemId) {
+        final Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException(ITEM_NOT_FOUND));
-        var itemDto = ItemMapper.toItemDto(item);
-        if ((Objects.equals(item.getOwner().getId(), userId))) {
+        final ItemDto itemDto = ItemMapper.toItemDto(item);
+
+        if (Objects.equals(item.getOwner().getId(), userId)) {
             addBookingInfo(itemDto);
         }
+
         addCommentsInfo(itemDto);
+
         return itemDto;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ItemDto> getItemsByOwnerId(Long userId, int from, int size) {
+    public List<ItemDto> getItemsByOwnerId(final Long userId, final int from, final int size) {
         return itemRepository.findAllByOwnerId(userId, PageRequest.of(from / size, size)).stream()
                 .map(ItemMapper::toItemDto)
                 .map(this::addBookingInfo)
                 .map(this::addCommentsInfo)
                 .sorted(Comparator.comparing(ItemDto::getId))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ItemDto> getItemsBySearchQuery(String searchText, int from, int size) {
+    public List<ItemDto> getItemsBySearchQuery(final String searchText, final int from, final int size) {
         if (searchText.isBlank()) {
             return Collections.emptyList();
         }
         return itemRepository.findBySearchText(searchText, PageRequest.of(from / size, size)).stream()
                 .map(ItemMapper::toItemDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     @Transactional
-    public ItemDto update(ItemDto itemDto, Long itemId, Long userId) {
-        var item = itemRepository.findById(itemId)
+    public ItemDto update(final ItemDto itemDto, final Long itemId, final Long userId) {
+        final Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException(ITEM_NOT_FOUND));
 
         if (!item.getOwner().getId().equals(userId)) {
@@ -128,33 +136,33 @@ public class ItemServiceImpl implements ItemService {
         try {
             return ItemMapper.toItemDto(itemRepository.save(item));
         } catch (DataIntegrityViolationException e) {
-            throw new ItemAlreadyExistsException(e.getMessage());
+            throw new ItemAlreadyExistsException(e.getMessage(), e);
         }
     }
 
     @Override
     @Transactional
-    public void delete(Long itemId) {
+    public void delete(final Long itemId) {
         itemRepository.deleteById(itemId);
     }
 
-    private ItemDto addCommentsInfo(ItemDto itemDto) {
+    private ItemDto addCommentsInfo(final ItemDto itemDto) {
         itemDto.setComments(commentRepository.findAllByItemId(itemDto.getId()).stream()
                 .map(CommentMapper::toCommentDto)
-                .collect(Collectors.toList()));
+                .toList());
         return itemDto;
     }
 
-    private ItemDto addBookingInfo(ItemDto itemDto) {
-        var bookings = bookingRepository.findAllByItemId(itemDto.getId());
+    private ItemDto addBookingInfo(final ItemDto itemDto) {
+        final List<Booking> bookings = bookingRepository.findAllByItemId(itemDto.getId());
 
-        var nextBooking = bookings.stream()
+        final Booking nextBooking = bookings.stream()
                 .filter(booking -> booking.getStart().isAfter(LocalDateTime.now()))
                 .filter(booking -> booking.getStatus().equals(Status.APPROVED))
                 .min(Comparator.comparing(Booking::getStart))
                 .orElse(null);
 
-        var lastBooking = bookings.stream()
+        final Booking lastBooking = bookings.stream()
                 .filter(booking -> booking.getStart().isBefore(LocalDateTime.now()))
                 .max(Comparator.comparing(Booking::getEnd))
                 .orElse(null);

@@ -18,25 +18,25 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
     private static final String USER_ALREADY_EXISTS = "Пользователь с такими данными существует";
-    private static final String INVALID_VALUE_FOR_UPDATE = "Некорректное значение для обновления";
     private static final String USER_NOT_FOUND = "Пользователь не найден";
+
     private final UserRepository userRepository;
 
     @Override
     @Transactional
-    public UserDto create(UserDto userDto) {
-        var user = UserMapper.toUser(userDto);
+    public UserDto create(final UserDto userDto) {
+        final User user = UserMapper.toUser(userDto);
         try {
             return UserMapper.toUserDto(userRepository.save(user));
         } catch (DataIntegrityViolationException e) {
-            throw new UserAlreadyExistsException(USER_ALREADY_EXISTS);
+            throw new UserAlreadyExistsException(USER_ALREADY_EXISTS, e);
         }
     }
 
     @Override
     @Transactional
-    public UserDto update(UserDto userDto, Long id) {
-        var user = userRepository.findById(id)
+    public UserDto update(final UserDto userDto, final Long id) {
+        final User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
 
         Optional.ofNullable(userDto.getName()).ifPresent(user::setName);
@@ -45,20 +45,20 @@ public class UserServiceImpl implements UserService {
         try {
             return UserMapper.toUserDto(userRepository.save(user));
         } catch (DataIntegrityViolationException e) {
-            throw new UserAlreadyExistsException(USER_ALREADY_EXISTS);
+            throw new UserAlreadyExistsException(USER_ALREADY_EXISTS, e);
         }
     }
 
     @Override
     @Transactional
-    public void delete(Long userId) {
+    public void delete(final Long userId) {
         userRepository.deleteById(userId);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public UserDto getUserById(Long id) {
-        var user = userRepository.findById(id)
+    public UserDto getUserById(final Long id) {
+        final User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
         return UserMapper.toUserDto(user);
     }

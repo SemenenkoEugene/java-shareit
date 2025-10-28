@@ -13,32 +13,29 @@ import ru.practicum.shareit.user.dto.UserDto;
 public class UserClient extends BaseClient {
     private static final String API_PREFIX = "/users";
 
-    public UserClient(@Value("${shareit-server.url}") String serverUrl, RestTemplateBuilder builder) {
-        super(
-                builder
-                        .uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl + API_PREFIX))
-                        .requestFactory(() -> new HttpComponentsClientHttpRequestFactory())
-                        .build()
-        );
+    public UserClient(@Value("${shareit-server.url}") final String serverUrl, final RestTemplateBuilder builder) {
+        super(builder.uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl + API_PREFIX))
+                .requestFactory(() -> new HttpComponentsClientHttpRequestFactory())
+                .build());
     }
 
     public ResponseEntity<Object> getAll() {
         return get("");
     }
 
-    public ResponseEntity<Object> getById(Long userId) {
+    public ResponseEntity<Object> getById(final Long userId) {
         return get("/" + userId);
     }
 
-    public ResponseEntity<Object> create(UserDto requestDto) {
+    public ResponseEntity<Object> create(final UserDto requestDto) {
         return post("", null, requestDto);
     }
 
-    public ResponseEntity<Object> update(Long userId, UserDto userDto) {
+    public ResponseEntity<Object> update(final Long userId, final UserDto userDto) {
         return patch("/" + userId, userId, null, userDto);
     }
 
-    public void delete(Long userId) {
+    public void delete(final Long userId) {
         delete("/" + userId);
     }
 }

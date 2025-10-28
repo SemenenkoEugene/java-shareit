@@ -1,5 +1,6 @@
 package ru.practicum.shareit.booking;
 
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -10,11 +11,10 @@ import ru.practicum.shareit.user.User;
 
 import java.time.LocalDateTime;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-
 @DataJpaTest
 @Transactional
 class BookingRepositoryTest {
+
     @Autowired
     private TestEntityManager testEntityManager;
 
@@ -23,31 +23,31 @@ class BookingRepositoryTest {
 
     @Test
     void findByItemIdAndUserIdAndExpiredEndDateAndApprovedStatusTest() {
-        LocalDateTime timestamp = LocalDateTime.now();
+        final LocalDateTime timestamp = LocalDateTime.now();
 
-        User owner = testEntityManager.persist(User.builder()
+        final User owner = testEntityManager.persist(User.builder()
                 .name("Owner")
                 .email("owner@user.ru")
                 .build());
 
-        User booker1 = testEntityManager.persist(User.builder()
+        final User booker1 = testEntityManager.persist(User.builder()
                 .name("Booker1")
                 .email("booker1@user.ru")
                 .build());
 
-        User booker2 = testEntityManager.persist(User.builder()
+        final User booker2 = testEntityManager.persist(User.builder()
                 .name("Booker2")
                 .email("booker2@user.ru")
                 .build());
 
-        Item item1 = testEntityManager.persist(Item.builder()
+        final Item item1 = testEntityManager.persist(Item.builder()
                 .name("Item1")
                 .description("Item1")
                 .available(true)
                 .owner(owner)
                 .build());
 
-        Item item2 = testEntityManager.persist(Item.builder()
+        final Item item2 = testEntityManager.persist(Item.builder()
                 .name("Item2")
                 .description("Item2")
                 .available(true)
@@ -62,8 +62,8 @@ class BookingRepositoryTest {
                 .status(Status.APPROVED)
                 .build());
 
-        assertThat(bookingRepository.findByItemIdAndUserIdAndExpiredEndDateAndApprovedStatus(item1.getId(), booker1.getId(), timestamp).size()).isEqualTo(1);
-        assertThat(bookingRepository.findByItemIdAndUserIdAndExpiredEndDateAndApprovedStatus(item1.getId(), booker2.getId(), timestamp).size()).isEqualTo(0);
+        Assertions.assertThat(bookingRepository.findByItemIdAndUserIdAndExpiredEndDateAndApprovedStatus(item1.getId(), booker1.getId(), timestamp).size()).isEqualTo(1);
+        Assertions.assertThat(bookingRepository.findByItemIdAndUserIdAndExpiredEndDateAndApprovedStatus(item1.getId(), booker2.getId(), timestamp).size()).isEqualTo(0);
 
         testEntityManager.persist(Booking.builder()
                 .start(timestamp.minusDays(1))
@@ -73,7 +73,7 @@ class BookingRepositoryTest {
                 .status(Status.APPROVED)
                 .build());
 
-        assertThat(bookingRepository.findByItemIdAndUserIdAndExpiredEndDateAndApprovedStatus(item1.getId(), booker1.getId(), timestamp).size()).isEqualTo(1);
+        Assertions.assertThat(bookingRepository.findByItemIdAndUserIdAndExpiredEndDateAndApprovedStatus(item1.getId(), booker1.getId(), timestamp).size()).isEqualTo(1);
 
         testEntityManager.persist(Booking.builder()
                 .start(timestamp.minusDays(1))
@@ -83,7 +83,7 @@ class BookingRepositoryTest {
                 .status(Status.REJECTED)
                 .build());
 
-        assertThat(bookingRepository.findByItemIdAndUserIdAndExpiredEndDateAndApprovedStatus(item1.getId(), booker1.getId(), timestamp).size()).isEqualTo(1);
+        Assertions.assertThat(bookingRepository.findByItemIdAndUserIdAndExpiredEndDateAndApprovedStatus(item1.getId(), booker1.getId(), timestamp).size()).isEqualTo(1);
 
         testEntityManager.persist(Booking.builder()
                 .start(timestamp.minusDays(2))
@@ -93,7 +93,7 @@ class BookingRepositoryTest {
                 .status(Status.APPROVED)
                 .build());
 
-        assertThat(bookingRepository
+        Assertions.assertThat(bookingRepository
                 .findByItemIdAndUserIdAndExpiredEndDateAndApprovedStatus(item1.getId(), booker1.getId(), timestamp).size()).isEqualTo(2);
 
         testEntityManager.persist(Booking.builder()
@@ -104,7 +104,7 @@ class BookingRepositoryTest {
                 .status(Status.APPROVED)
                 .build());
 
-        assertThat(bookingRepository
+        Assertions.assertThat(bookingRepository
                 .findByItemIdAndUserIdAndExpiredEndDateAndApprovedStatus(item1.getId(), booker1.getId(), timestamp).size()).isEqualTo(2);
     }
 }

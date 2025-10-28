@@ -15,36 +15,32 @@ import java.util.Map;
 public class ItemRequestClient extends BaseClient {
     private static final String API_PREFIX = "/requests";
 
-    public ItemRequestClient(@Value("${shareit-server.url}") String serverUrl, RestTemplateBuilder builder) {
-        super(
-                builder
-                        .uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl + API_PREFIX))
-                        .requestFactory(() -> new HttpComponentsClientHttpRequestFactory())
-                        .build()
+    public ItemRequestClient(@Value("${shareit-server.url}") final String serverUrl, final RestTemplateBuilder builder) {
+        super(builder.uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl + API_PREFIX))
+                .requestFactory(() -> new HttpComponentsClientHttpRequestFactory())
+                .build()
         );
     }
 
-    public ResponseEntity<Object> getAllByOwnerId(Long userId, Integer from, Integer size) {
-        Map<String, Object> parameters = Map.of(
+    public ResponseEntity<Object> getAllByOwnerId(final Long userId, final Integer from, final Integer size) {
+        final Map<String, Object> parameters = Map.of(
                 "from", from,
-                "size", size
-        );
+                "size", size);
         return get("?from={from}&size={size}", userId, parameters);
     }
 
-    public ResponseEntity<Object> getAll(Long userId, Integer from, Integer size) {
-        Map<String, Object> parameters = Map.of(
+    public ResponseEntity<Object> getAll(final Long userId, final Integer from, final Integer size) {
+        final Map<String, Object> parameters = Map.of(
                 "from", from,
-                "size", size
-        );
+                "size", size);
         return get("/all?from={from}&size={size}", userId, parameters);
     }
 
-    public ResponseEntity<Object> getById(Long userId, Long itemRequestId) {
+    public ResponseEntity<Object> getById(final Long userId, final Long itemRequestId) {
         return get("/" + itemRequestId, userId);
     }
 
-    public ResponseEntity<Object> create(Long userId, ItemRequestCreateDto requestDto) {
+    public ResponseEntity<Object> create(final Long userId, final ItemRequestCreateDto requestDto) {
         return post("", userId, requestDto);
     }
 }

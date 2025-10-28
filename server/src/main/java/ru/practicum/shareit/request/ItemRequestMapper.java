@@ -9,7 +9,7 @@ import ru.practicum.shareit.request.dto.ItemRequestGetResponseDto;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ItemRequestMapper {
 
-    public static ItemRequestCreateResponseDto toCreateResponseDto(ItemRequest itemRequest) {
+    public static ItemRequestCreateResponseDto toCreateResponseDto(final ItemRequest itemRequest) {
         return ItemRequestCreateResponseDto.builder()
                 .id(itemRequest.getId())
                 .description(itemRequest.getDescription())
@@ -17,7 +17,7 @@ public class ItemRequestMapper {
                 .build();
     }
 
-    public static ItemRequestGetResponseDto toGetResponseDto(ItemRequest itemRequest) {
+    public static ItemRequestGetResponseDto toGetResponseDto(final ItemRequest itemRequest) {
         return ItemRequestGetResponseDto.builder()
                 .id(itemRequest.getId())
                 .description(itemRequest.getDescription())
@@ -25,8 +25,8 @@ public class ItemRequestMapper {
                 .build();
     }
 
-    public static ItemRequest toItemRequest(ItemRequestCreateDto itemRequestCreateDto) {
-        ItemRequest itemRequest = new ItemRequest();
+    public static ItemRequest toItemRequest(final ItemRequestCreateDto itemRequestCreateDto) {
+        final ItemRequest itemRequest = new ItemRequest();
         itemRequest.setDescription(itemRequestCreateDto.getDescription());
         return itemRequest;
     }

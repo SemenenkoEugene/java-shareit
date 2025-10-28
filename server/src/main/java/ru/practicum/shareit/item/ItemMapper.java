@@ -8,7 +8,7 @@ import ru.practicum.shareit.item.model.Item;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ItemMapper {
 
-    public static ItemDto toItemDto(Item item) {
+    public static ItemDto toItemDto(final Item item) {
         return ItemDto.builder()
                 .id(item.getId())
                 .name(item.getName())
@@ -18,8 +18,8 @@ public class ItemMapper {
                 .build();
     }
 
-    public static Item toItem(ItemDto itemDto) {
-        Item item = new Item();
+    public static Item toItem(final ItemDto itemDto) {
+        final Item item = new Item();
         item.setName(itemDto.getName());
         item.setDescription(itemDto.getDescription());
         item.setAvailable(itemDto.getAvailable());

@@ -29,34 +29,34 @@ public class BookingController {
     private final BookingClient bookingClient;
 
     @PostMapping
-    public ResponseEntity<Object> create(@RequestHeader(X_SHARER_USER_ID) Long userId,
-                                         @Valid @RequestBody BookingRequestDto bookingRequestDto) {
+    public ResponseEntity<Object> create(@RequestHeader(X_SHARER_USER_ID) final Long userId,
+                                         @Valid @RequestBody final BookingRequestDto bookingRequestDto) {
         log.info("Получен POST-запрос к эндпоинту: '/bookings' " +
                  "на создание бронирования от пользователя с ID={}", userId);
         return bookingClient.create(userId, bookingRequestDto);
     }
 
     @PatchMapping("/{bookingId}")
-    public ResponseEntity<Object> update(@RequestHeader(X_SHARER_USER_ID) Long userId,
-                                         @PathVariable Long bookingId,
-                                         @RequestParam boolean approved) {
+    public ResponseEntity<Object> update(@RequestHeader(X_SHARER_USER_ID) final Long userId,
+                                         @PathVariable final Long bookingId,
+                                         @RequestParam final boolean approved) {
         log.info("Получен PATCH-запрос к эндпоинту: '/bookings' на обновление статуса бронирования с ID={}", bookingId);
         return bookingClient.approve(userId, bookingId, approved);
     }
 
     @GetMapping("/{bookingId}")
-    public ResponseEntity<Object> getBookingById(@RequestHeader(X_SHARER_USER_ID) Long userId,
-                                                 @PathVariable Long bookingId) {
+    public ResponseEntity<Object> getBookingById(@RequestHeader(X_SHARER_USER_ID) final Long userId,
+                                                 @PathVariable final Long bookingId) {
         log.info("Получен GET-запрос к эндпоинту: '/bookings' на получение бронирования с ID={}", bookingId);
         return bookingClient.getById(userId, bookingId);
     }
 
     @GetMapping()
-    public ResponseEntity<Object> getAllByState(@RequestHeader(X_SHARER_USER_ID) Long userId,
-                                                @RequestParam(defaultValue = "ALL") String state,
-                                                @Valid @RequestParam(name = "from", defaultValue = "0") @Min(0) int from,
-                                                @Valid @RequestParam(name = "size", defaultValue = "20") @Min(1) int size) {
-        RequestBookingStatus status = RequestBookingStatus.from(state)
+    public ResponseEntity<Object> getAllByState(@RequestHeader(X_SHARER_USER_ID) final Long userId,
+                                                @RequestParam(defaultValue = "ALL") final String state,
+                                                @Valid @RequestParam(name = "from", defaultValue = "0") @Min(0) final int from,
+                                                @Valid @RequestParam(name = "size", defaultValue = "20") @Min(1) final int size) {
+        final RequestBookingStatus status = RequestBookingStatus.from(state)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown state: " + state));
         log.info("Получен GET-запрос к эндпоинту: '/bookings' на получение " +
                  "списка всех бронирований пользователя с ID={} с параметром STATE={}", userId, status);
@@ -64,11 +64,11 @@ public class BookingController {
     }
 
     @GetMapping("/owner")
-    public ResponseEntity<Object> getBookingsOwner(@RequestHeader(X_SHARER_USER_ID) Long userId,
-                                                   @RequestParam(required = false, defaultValue = "ALL") String state,
-                                                   @Valid @RequestParam(value = "from", defaultValue = "0") @Min(0) int from,
-                                                   @Valid @RequestParam(value = "size", defaultValue = "20") @Min(1) int size) {
-        RequestBookingStatus status = RequestBookingStatus.from(state)
+    public ResponseEntity<Object> getBookingsOwner(@RequestHeader(X_SHARER_USER_ID) final Long userId,
+                                                   @RequestParam(required = false, defaultValue = "ALL") final String state,
+                                                   @Valid @RequestParam(value = "from", defaultValue = "0") @Min(0) final int from,
+                                                   @Valid @RequestParam(value = "size", defaultValue = "20") @Min(1) final int size) {
+        final RequestBookingStatus status = RequestBookingStatus.from(state)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown state: " + state));
         log.info("Получен GET-запрос к эндпоинту: '/bookings/owner' на получение " +
                  "списка всех бронирований вещей пользователя с ID={} с параметром STATE={}", userId, status);

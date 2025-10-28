@@ -10,6 +10,7 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.request.dto.ItemRequestCreateDto;
 import ru.practicum.shareit.request.dto.ItemRequestCreateResponseDto;
 import ru.practicum.shareit.request.dto.ItemRequestGetResponseDto;
+import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserRepository;
 
 import java.time.LocalDateTime;
@@ -31,66 +32,64 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ItemRequestGetResponseDto> getAllByRequestorId(Long userId, int from, int size) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
-        List<ItemRequest> itemRequests = itemRequestRepository.findAllByRequestorIdOrderByCreatedDesc(userId, PageRequest.of(from / size, size));
-        Map<Long, List<Item>> itemsRequestId = itemRepository.findAllByItemRequestIn(itemRequests).stream()
+    public List<ItemRequestGetResponseDto> getAllByRequestorId(final Long userId, final int from, final int size) {
+
+        final List<ItemRequest> itemRequests = itemRequestRepository.findAllByRequestorIdOrderByCreatedDesc(userId, PageRequest.of(from / size, size));
+        final Map<Long, List<Item>> itemsRequestId = itemRepository.findAllByItemRequestIn(itemRequests).stream()
                 .collect(Collectors.groupingBy(item -> item.getItemRequest().getId()));
 
         return itemRequests.stream()
                 .map(ItemRequestMapper::toGetResponseDto)
                 .map(itemRequestGetResponseDto ->
                         addItemInfo(itemsRequestId.get(itemRequestGetResponseDto.getId()), itemRequestGetResponseDto))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ItemRequestGetResponseDto> getAll(Long userId, int from, int size) {
+    public List<ItemRequestGetResponseDto> getAll(final Long userId, final int from, final int size) {
         return itemRequestRepository
                 .findAllByRequestorIdNotOrderByCreatedDesc(userId, PageRequest.of(from / size, size)).stream()
                 .map(ItemRequestMapper::toGetResponseDto)
                 .map(this::addItemInfo)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ItemRequestGetResponseDto getById(Long userId, Long itemRequestId) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
-        var itemRequest = itemRequestRepository.findById(itemRequestId)
+    public ItemRequestGetResponseDto getById(final Long userId, final Long itemRequestId) {
+
+        final ItemRequest itemRequest = itemRequestRepository.findById(itemRequestId)
                 .orElseThrow(() -> new NotFoundException(REQUEST_NOT_FOUND));
-        var responseDto = ItemRequestMapper.toGetResponseDto(itemRequest);
+        ItemRequestGetResponseDto responseDto = ItemRequestMapper.toGetResponseDto(itemRequest);
         responseDto = addItemInfo(responseDto);
         return responseDto;
     }
 
     @Override
     @Transactional
-    public ItemRequestCreateResponseDto create(ItemRequestCreateDto itemRequestCreateDto, Long userId) {
-        var user = userRepository.findById(userId)
+    public ItemRequestCreateResponseDto create(final ItemRequestCreateDto itemRequestCreateDto, final Long userId) {
+        final User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
-        var itemRequest = ItemRequestMapper.toItemRequest(itemRequestCreateDto);
+        final ItemRequest itemRequest = ItemRequestMapper.toItemRequest(itemRequestCreateDto);
         itemRequest.setRequestor(user);
         itemRequest.setCreated(LocalDateTime.now());
 
         return ItemRequestMapper.toCreateResponseDto(itemRequestRepository.save(itemRequest));
     }
 
-    private ItemRequestGetResponseDto addItemInfo(List<Item> items, ItemRequestGetResponseDto itemRequestGetResponseDto) {
+    private ItemRequestGetResponseDto addItemInfo(final List<Item> items, final ItemRequestGetResponseDto itemRequestGetResponseDto) {
 
         return getItemRequestGetResponseDto(itemRequestGetResponseDto, items);
     }
 
-    private ItemRequestGetResponseDto addItemInfo(ItemRequestGetResponseDto itemRequestGetResponseDto) {
-        List<Item> items = itemRepository.findAllByItemRequestId(itemRequestGetResponseDto.getId());
+    private ItemRequestGetResponseDto addItemInfo(final ItemRequestGetResponseDto itemRequestGetResponseDto) {
+        final List<Item> items = itemRepository.findAllByItemRequestId(itemRequestGetResponseDto.getId());
 
         return getItemRequestGetResponseDto(itemRequestGetResponseDto, items);
     }
 
-    private ItemRequestGetResponseDto getItemRequestGetResponseDto(ItemRequestGetResponseDto itemRequestGetResponseDto, List<Item> items) {
+    private ItemRequestGetResponseDto getItemRequestGetResponseDto(final ItemRequestGetResponseDto itemRequestGetResponseDto, final List<Item> items) {
 
         itemRequestGetResponseDto.setItems(items == null || items.isEmpty() ? Collections.emptyList() :
                 items.stream()
@@ -102,8 +101,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
                                 .requestId(item.getItemRequest().getId())
                                 .build()
                         )
-                        .collect(Collectors.toList())
-        );
+                        .toList());
         return itemRequestGetResponseDto;
     }
 }
