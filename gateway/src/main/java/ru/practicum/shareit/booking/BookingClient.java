@@ -18,19 +18,19 @@ public class BookingClient extends BaseClient {
     private static final String API_PREFIX = "/bookings";
 
     @Autowired
-    public BookingClient(@Value("${shareit-server.url}") String serverUrl, RestTemplateBuilder builder) {
+    public BookingClient(@Value("${shareit-server.url}") final String serverUrl, final RestTemplateBuilder builder) {
         super(builder.uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl + API_PREFIX))
                 .requestFactory(() -> new HttpComponentsClientHttpRequestFactory())
                 .build()
         );
     }
 
-    public ResponseEntity<Object> getById(Long userId, Long bookingId) {
+    public ResponseEntity<Object> getById(final Long userId, final Long bookingId) {
         return get("/" + bookingId, userId);
     }
 
-    public ResponseEntity<Object> getAllByState(Long userId, RequestBookingStatus state, Integer from, Integer size) {
-        Map<String, Object> parameters = Map.of(
+    public ResponseEntity<Object> getAllByState(final Long userId, final RequestBookingStatus state, final Integer from, final Integer size) {
+        final Map<String, Object> parameters = Map.of(
                 "state", state.name(),
                 "from", from,
                 "size", size
@@ -38,8 +38,8 @@ public class BookingClient extends BaseClient {
         return get("?state={state}&from={from}&size={size}", userId, parameters);
     }
 
-    public ResponseEntity<Object> getAllByStateForOwner(Long userId, RequestBookingStatus state, Integer from, Integer size) {
-        Map<String, Object> parameters = Map.of(
+    public ResponseEntity<Object> getAllByStateForOwner(final Long userId, final RequestBookingStatus state, final Integer from, final Integer size) {
+        final Map<String, Object> parameters = Map.of(
                 "state", state.name(),
                 "from", from,
                 "size", size
@@ -47,12 +47,12 @@ public class BookingClient extends BaseClient {
         return get("/owner?state={state}&from={from}&size={size}", userId, parameters);
     }
 
-    public ResponseEntity<Object> create(Long userId, BookingRequestDto requestDto) {
+    public ResponseEntity<Object> create(final Long userId, final BookingRequestDto requestDto) {
         return post("", userId, requestDto);
     }
 
-    public ResponseEntity<Object> approve(Long userId, Long bookingId, boolean approved) {
-        Map<String, Object> parameters = Map.of("approved", approved);
+    public ResponseEntity<Object> approve(final Long userId, final Long bookingId, final boolean approved) {
+        final Map<String, Object> parameters = Map.of("approved", approved);
         return patch("/" + bookingId + "?approved={approved}", userId, parameters, null);
     }
 }

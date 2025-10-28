@@ -1,26 +1,30 @@
 package ru.practicum.shareit.user;
 
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.Mockito;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import ru.practicum.shareit.exception.UserAlreadyExistsException;
 import ru.practicum.shareit.user.dto.UserDto;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
-@ExtendWith(MockitoExtension.class)
+@ExtendWith(SpringExtension.class)
 class UserServiceTest {
+
+    private static final Long USER_ID = 1L;
+    private static final User USER = User.builder()
+            .id(USER_ID)
+            .name("User " + USER_ID)
+            .email("Email" + USER_ID + "@test.ru")
+            .build();
+
+    private static final UserDto USER_DTO = UserDto.builder().build();
 
     @Mock
     private UserRepository userRepository;
@@ -30,136 +34,119 @@ class UserServiceTest {
 
     @Test
     void createUser_Ok() {
-        UserDto userDto = UserDto.builder().build();
 
-        User user = getUser(1L);
+        Mockito.when(userRepository.save(Mockito.any())).thenReturn(USER);
 
-        when(userRepository.save(any(User.class))).thenReturn(user);
+        final UserDto createUserDto = userService.create(USER_DTO);
 
-        UserDto createUserDto = userService.create(userDto);
+        Assertions.assertThat(createUserDto)
+                .isNotNull()
+                .satisfies(dto -> {
+                    Assertions.assertThat(dto.getId()).isEqualTo(USER.getId());
+                    Assertions.assertThat(dto.getName()).isEqualTo(USER.getName());
+                    Assertions.assertThat(dto.getEmail()).isEqualTo(USER.getEmail());
+                });
 
-        assertThat(createUserDto.getId(), equalTo(user.getId()));
-        assertThat(createUserDto.getName(), equalTo(user.getName()));
-        assertThat(createUserDto.getEmail(), equalTo(user.getEmail()));
-
-        verify(userRepository, times(1)).save(any(User.class));
-        verifyNoMoreInteractions(userRepository);
+        Mockito.verify(userRepository).save(Mockito.any(User.class));
+        Mockito.verifyNoMoreInteractions(userRepository);
     }
 
     @Test
     void createUser_Conflict() {
-        var userDto = UserDto.builder().build();
 
-        when(userRepository.save(any(User.class)))
+        Mockito.when(userRepository.save(Mockito.any()))
                 .thenThrow(new DataIntegrityViolationException("Пользователь с такими данными существует"));
 
-        var userAlreadyExistsException = assertThrows(UserAlreadyExistsException.class,
-                () -> userService.create(userDto));
-        assertThat(userAlreadyExistsException.getMessage(), equalTo("Пользователь с такими данными существует"));
+        Assertions.assertThatThrownBy(() -> userService.create(USER_DTO))
+                .isInstanceOf(UserAlreadyExistsException.class)
+                .hasMessage("Пользователь с такими данными существует");
 
-        verify(userRepository, times(1)).save(any(User.class));
-        verifyNoMoreInteractions(userRepository);
+        Mockito.verify(userRepository).save(Mockito.any(User.class));
+        Mockito.verifyNoMoreInteractions(userRepository);
     }
 
     @Test
     void getUserById_Ok() {
-        User user = getUser(1L);
 
-        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        Mockito.when(userRepository.findById(Mockito.anyLong())).thenReturn(Optional.of(USER));
 
-        UserDto getUserByIdDto = userService.getUserById(user.getId());
+        final UserDto getUserByIdDto = userService.getUserById(USER.getId());
 
-        assertThat(getUserByIdDto.getId(), equalTo(user.getId()));
-        assertThat(getUserByIdDto.getName(), equalTo(user.getName()));
-        assertThat(getUserByIdDto.getEmail(), equalTo(user.getEmail()));
+        Assertions.assertThat(getUserByIdDto)
+                .isNotNull()
+                .satisfies(dto -> {
+                    Assertions.assertThat(dto.getId()).isEqualTo(USER.getId());
+                    Assertions.assertThat(dto.getName()).isEqualTo(USER.getName());
+                    Assertions.assertThat(dto.getEmail()).isEqualTo(USER.getEmail());
+                });
 
-        verify(userRepository, times(1)).findById(user.getId());
-        verifyNoMoreInteractions(userRepository);
+        Mockito.verify(userRepository).findById(USER.getId());
+        Mockito.verifyNoMoreInteractions(userRepository);
     }
 
     @Test
     void getAllUsers_Ok() {
-        User user1 = getUser(1L);
-        User user2 = getUser(2L);
 
-        List<User> userList = Arrays.asList(
-                user1,
-                user2
-        );
+        Mockito.when(userRepository.findAll()).thenReturn(List.of(USER));
 
-        when(userRepository.findAll())
-                .thenReturn(userList);
+        final List<UserDto> getUsersListDto = userService.getUsers();
 
-        List<UserDto> getUsersListDto = userService.getUsers();
+        Assertions.assertThat(getUsersListDto)
+                .hasSize(1)
+                .first()
+                .satisfies(dto -> {
+                    Assertions.assertThat(dto.getId()).isEqualTo(USER.getId());
+                    Assertions.assertThat(dto.getName()).isEqualTo(USER.getName());
+                    Assertions.assertThat(dto.getEmail()).isEqualTo(USER.getEmail());
+                });
 
-        assertThat(getUsersListDto.get(0).getId(), equalTo(user1.getId()));
-        assertThat(getUsersListDto.get(0).getName(), equalTo(user1.getName()));
-        assertThat(getUsersListDto.get(0).getEmail(), equalTo(user1.getEmail()));
-
-        assertThat(getUsersListDto.get(1).getId(), equalTo(user2.getId()));
-        assertThat(getUsersListDto.get(1).getName(), equalTo(user2.getName()));
-        assertThat(getUsersListDto.get(1).getEmail(), equalTo(user2.getEmail()));
-
-        verify(userRepository, times(1)).findAll();
-        verifyNoMoreInteractions(userRepository);
+        Mockito.verify(userRepository).findAll();
+        Mockito.verifyNoMoreInteractions(userRepository);
     }
 
     @Test
     void updateUser_Ok() {
-        UserDto userDto = UserDto.builder().build();
 
-        User user = getUser(1L);
+        Mockito.when(userRepository.findById(Mockito.anyLong())).thenReturn(Optional.of(USER));
+        Mockito.when(userRepository.save(Mockito.any())).thenReturn(USER);
 
-        when(userRepository.findById(user.getId()))
-                .thenReturn(Optional.of(user));
-        when(userRepository.save(any(User.class)))
-                .thenReturn(user);
+        final UserDto updateUserDto = userService.update(USER_DTO, USER.getId());
 
-        UserDto updateUserDto = userService.update(userDto, user.getId());
+        Assertions.assertThat(updateUserDto)
+                .isNotNull()
+                .satisfies(dto -> {
+                    Assertions.assertThat(dto.getId()).isEqualTo(USER.getId());
+                    Assertions.assertThat(dto.getName()).isEqualTo(USER.getName());
+                    Assertions.assertThat(dto.getEmail()).isEqualTo(USER.getEmail());
+                });
 
-        assertThat(updateUserDto.getId(), equalTo(user.getId()));
-        assertThat(updateUserDto.getName(), equalTo(user.getName()));
-        assertThat(updateUserDto.getEmail(), equalTo(user.getEmail()));
-
-        verify(userRepository, times(1)).findById(user.getId());
-        verify(userRepository, times(1)).save(any(User.class));
-        verifyNoMoreInteractions(userRepository);
+        Mockito.verify(userRepository).findById(USER.getId());
+        Mockito.verify(userRepository).save(Mockito.any(User.class));
+        Mockito.verifyNoMoreInteractions(userRepository);
     }
 
     @Test
     void updateUser_Conflict() {
-        UserDto userDto = UserDto.builder().build();
 
-        User user = getUser(1L);
-
-        when(userRepository.findById(user.getId()))
-                .thenReturn(Optional.of(user));
-        when(userRepository.save(any(User.class)))
+        Mockito.when(userRepository.findById(Mockito.anyLong())).thenReturn(Optional.of(USER));
+        Mockito.when(userRepository.save(Mockito.any()))
                 .thenThrow(new DataIntegrityViolationException("Пользователь с такими данными существует"));
 
-        var userAlreadyExistsException = assertThrows(UserAlreadyExistsException.class,
-                () -> userService.update(userDto, user.getId()));
+        Assertions.assertThatThrownBy(() -> userService.update(USER_DTO, USER.getId()))
+                .isInstanceOf(UserAlreadyExistsException.class)
+                .hasMessage("Пользователь с такими данными существует");
 
-        assertThat(userAlreadyExistsException.getMessage(), equalTo("Пользователь с такими данными существует"));
-
-        verify(userRepository, times(1)).findById(user.getId());
-        verify(userRepository, times(1)).save(any(User.class));
-        verifyNoMoreInteractions(userRepository);
+        Mockito.verify(userRepository).findById(USER.getId());
+        Mockito.verify(userRepository).save(Mockito.any(User.class));
+        Mockito.verifyNoMoreInteractions(userRepository);
     }
 
     @Test
     void deleteTest() {
-        userService.delete(1L);
 
-        verify(userRepository, times(1)).deleteById(1L);
-        verifyNoMoreInteractions(userRepository);
-    }
+        userService.delete(USER_ID);
 
-    private User getUser(Long id) {
-        return User.builder()
-                .id(1L)
-                .name("User " + id)
-                .email("Email" + id + "@test.ru")
-                .build();
+        Mockito.verify(userRepository).deleteById(USER_ID);
+        Mockito.verifyNoMoreInteractions(userRepository);
     }
 }

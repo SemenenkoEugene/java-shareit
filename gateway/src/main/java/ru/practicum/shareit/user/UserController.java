@@ -20,23 +20,24 @@ import ru.practicum.shareit.user.dto.UserDto;
 @RequestMapping(path = "/users")
 @RequiredArgsConstructor
 public class UserController {
+
     private final UserClient userClient;
 
     @PostMapping
-    public ResponseEntity<Object> create(@Valid @RequestBody UserDto userDto) {
+    public ResponseEntity<Object> create(@Valid @RequestBody final UserDto userDto) {
         log.debug("Получен POST-запрос к эндпоинту: '/users' на добавление пользователя");
         return userClient.create(userDto);
     }
 
     @PatchMapping("/{userId}")
-    public ResponseEntity<Object> update(@PathVariable Long userId,
-                                         @RequestBody UserDto userDto) {
+    public ResponseEntity<Object> update(@PathVariable final Long userId,
+                                         @RequestBody final UserDto userDto) {
         log.debug("Получен PATCH-запрос к эндпоинту: '/users' на обновление пользователя с ID={}", userId);
         return userClient.update(userId, userDto);
     }
 
     @DeleteMapping("/{userId}")
-    public void delete(@PathVariable Long userId) {
+    public void delete(@PathVariable final Long userId) {
         log.debug("Получен DELETE-запрос к эндпоинту: '/users' на удаление пользователя с ID={}", userId);
         userClient.delete(userId);
     }
@@ -47,7 +48,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<Object> getUserById(@PathVariable Long userId) {
+    public ResponseEntity<Object> getUserById(@PathVariable final Long userId) {
         return userClient.getById(userId);
     }
 }

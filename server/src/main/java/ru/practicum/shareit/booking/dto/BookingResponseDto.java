@@ -9,18 +9,23 @@ import ru.practicum.shareit.booking.Status;
 import java.time.LocalDateTime;
 
 @Data
-@Builder
+@Builder(toBuilder = true)
 public class BookingResponseDto {
 
     private Long id;
+
     private LocalDateTime start;
+
     private LocalDateTime end;
+
     private Status status;
+
     private BookingResponseUserDto booker;
+
     private BookingResponseItemDto item;
 
     @Data
-    @Builder
+    @Builder(toBuilder = true)
     @NoArgsConstructor
     @AllArgsConstructor
     public static class BookingResponseUserDto {
@@ -28,7 +33,7 @@ public class BookingResponseDto {
     }
 
     @Data
-    @Builder
+    @Builder(toBuilder = true)
     @NoArgsConstructor
     @AllArgsConstructor
     public static class BookingResponseItemDto {

@@ -17,28 +17,28 @@ public class ItemRequestController {
     private final ItemRequestService itemRequestService;
 
     @GetMapping
-    public List<ItemRequestGetResponseDto> getAllByOwnerId(@RequestHeader(HEADER) Long userid,
-                                                           @RequestParam(required = false, defaultValue = "0") int from,
-                                                           @RequestParam(required = false, defaultValue = "20") int size) {
+    public List<ItemRequestGetResponseDto> getAllByOwnerId(@RequestHeader(HEADER) final Long userid,
+                                                           @RequestParam(required = false, defaultValue = "0") final int from,
+                                                           @RequestParam(required = false, defaultValue = "20") final int size) {
         return itemRequestService.getAllByRequestorId(userid, from, size);
     }
 
     @GetMapping("/all")
-    public List<ItemRequestGetResponseDto> getAll(@RequestHeader(HEADER) Long userId,
-                                                  @RequestParam(required = false, defaultValue = "0") int from,
-                                                  @RequestParam(required = false, defaultValue = "20") int size) {
+    public List<ItemRequestGetResponseDto> getAll(@RequestHeader(HEADER) final Long userId,
+                                                  @RequestParam(required = false, defaultValue = "0") final int from,
+                                                  @RequestParam(required = false, defaultValue = "20") final int size) {
         return itemRequestService.getAll(userId, from, size);
     }
 
     @GetMapping("/{itemRequestId}")
-    public ItemRequestGetResponseDto getById(@RequestHeader(HEADER) Long userId,
-                                             @PathVariable Long itemRequestId) {
+    public ItemRequestGetResponseDto getById(@RequestHeader(HEADER) final Long userId,
+                                             @PathVariable final Long itemRequestId) {
         return itemRequestService.getById(userId, itemRequestId);
     }
 
     @PostMapping
-    public ItemRequestCreateResponseDto create(@RequestHeader(HEADER) Long userId,
-                                               @RequestBody ItemRequestCreateDto itemRequestCreateDto) {
+    public ItemRequestCreateResponseDto create(@RequestHeader(HEADER) final Long userId,
+                                               @RequestBody final ItemRequestCreateDto itemRequestCreateDto) {
         return itemRequestService.create(itemRequestCreateDto, userId);
     }
 }

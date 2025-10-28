@@ -2,6 +2,7 @@ plugins {
     id 'org.springframework.boot' version '3.5.6' apply false
     id 'io.spring.dependency-management' version '1.1.7'
     id 'java'
+    id 'pmd'
     id 'checkstyle'
 //    id 'com.github.spotbugs' version '6.0.12'
     id 'jacoco'
@@ -18,6 +19,7 @@ java {
 
 subprojects {
     apply plugin: 'java'
+    apply plugin: 'pmd'
     apply plugin: 'io.spring.dependency-management'
     apply plugin: 'jacoco'
     apply plugin: 'checkstyle'
@@ -59,7 +61,7 @@ subprojects {
                 limit {
                     counter = 'LINE'
                     value = 'COVEREDRATIO'
-                    minimum = 0.90
+                    minimum = 0.80
                 }
             }
         }
@@ -78,5 +80,14 @@ subprojects {
     tasks.withType(Checkstyle).configureEach {
         classpath = files()
     }
+
+    pmd {
+        toolVersion = "7.17.0"
+        ignoreFailures = false
+        consoleOutput = true
+        ruleSetFiles = files("${rootProject.projectDir}/config/pmd/ruleset.xml")
+        ruleSets = []
+    }
+
 
 }

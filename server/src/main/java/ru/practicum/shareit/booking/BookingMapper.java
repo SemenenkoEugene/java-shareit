@@ -7,7 +7,7 @@ import ru.practicum.shareit.booking.dto.BookingResponseDto;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class BookingMapper {
-    public static BookingResponseDto toDto(Booking booking) {
+    public static BookingResponseDto toDto(final Booking booking) {
         return BookingResponseDto.builder()
                 .id(booking.getId())
                 .start(booking.getStart())
@@ -23,8 +23,8 @@ public class BookingMapper {
                 .build();
     }
 
-    public static Booking fromDto(BookingRequestDto bookingRequestDto) {
-        Booking booking = new Booking();
+    public static Booking fromDto(final BookingRequestDto bookingRequestDto) {
+        final Booking booking = new Booking();
         booking.setStart(bookingRequestDto.getStart());
         booking.setEnd(bookingRequestDto.getEnd());
         return booking;

@@ -1,5 +1,7 @@
 package ru.practicum.shareit.item;
 
+import lombok.SneakyThrows;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.json.JsonTest;
@@ -12,8 +14,6 @@ import java.time.LocalDateTime;
 import java.time.Month;
 import java.util.ArrayList;
 
-import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
-
 @JsonTest
 class ItemJsonTest {
 
@@ -23,15 +23,16 @@ class ItemJsonTest {
     @Autowired
     private JacksonTester<CommentDto> commentDtoJacksonTester;
 
+    @SneakyThrows
     @Test
-    void itemDtoTest() throws Exception {
-        ItemDto itemDto = ItemDto.builder()
+    void itemDtoTest()  {
+        final ItemDto itemDto = ItemDto.builder()
                 .id(1L)
                 .name("Скарификатор")
                 .description("Для удаления старой газонной травы")
                 .available(true)
                 .nextBooking(ItemDto.ItemBooking.builder()
-                        .id(10123L)
+                        .id(10_123L)
                         .bookerId(1005L)
                         .build())
                 .lastBooking(null)
@@ -39,36 +40,36 @@ class ItemJsonTest {
                 .requestId(20L)
                 .build();
 
-        JsonContent<ItemDto> jsonContent = itemDtoJacksonTester.write(itemDto);
+        final JsonContent<ItemDto> jsonContent = itemDtoJacksonTester.write(itemDto);
 
-        assertThat(jsonContent).extractingJsonPathNumberValue("$.id").isEqualTo(1);
-        assertThat(jsonContent).extractingJsonPathStringValue("$.name").isEqualTo("Скарификатор");
-        assertThat(jsonContent).extractingJsonPathStringValue("$.description").isEqualTo("Для удаления старой газонной травы");
-        assertThat(jsonContent).extractingJsonPathBooleanValue("$.available").isEqualTo(true);
-        assertThat(jsonContent).extractingJsonPathNumberValue("$.nextBooking.id").isEqualTo(10123);
-        assertThat(jsonContent).extractingJsonPathNumberValue("$.nextBooking.bookerId").isEqualTo(1005);
-        assertThat(jsonContent).extractingJsonPathStringValue("$.lastBooking").isNull();
-        assertThat(jsonContent).extractingJsonPathArrayValue("$.comments").isEmpty();
-        assertThat(jsonContent).extractingJsonPathNumberValue("$.requestId").isEqualTo(20);
+        Assertions.assertThat(jsonContent).extractingJsonPathNumberValue("$.id").isEqualTo(1);
+        Assertions.assertThat(jsonContent).extractingJsonPathStringValue("$.name").isEqualTo("Скарификатор");
+        Assertions.assertThat(jsonContent).extractingJsonPathStringValue("$.description").isEqualTo("Для удаления старой газонной травы");
+        Assertions.assertThat(jsonContent).extractingJsonPathBooleanValue("$.available").isEqualTo(true);
+        Assertions.assertThat(jsonContent).extractingJsonPathNumberValue("$.nextBooking.id").isEqualTo(10_123);
+        Assertions.assertThat(jsonContent).extractingJsonPathNumberValue("$.nextBooking.bookerId").isEqualTo(1005);
+        Assertions.assertThat(jsonContent).extractingJsonPathStringValue("$.lastBooking").isNull();
+        Assertions.assertThat(jsonContent).extractingJsonPathArrayValue("$.comments").isEmpty();
+        Assertions.assertThat(jsonContent).extractingJsonPathNumberValue("$.requestId").isEqualTo(20);
     }
 
     @Test
     void commentDtoTest() throws Exception {
-        LocalDateTime timestamp = LocalDateTime.of(2023, Month.AUGUST, 14, 12, 12, 12);
+        final LocalDateTime timestamp = LocalDateTime.of(2023, Month.AUGUST, 14, 12, 12, 12);
 
-        CommentDto commentDto = CommentDto.builder()
+        final CommentDto commentDto = CommentDto.builder()
                 .id(1L)
                 .text("Вещь хорошая")
                 .authorName("Садовник Джо")
                 .created(timestamp)
                 .build();
 
-        JsonContent<CommentDto> jsonContent = commentDtoJacksonTester.write(commentDto);
+        final JsonContent<CommentDto> jsonContent = commentDtoJacksonTester.write(commentDto);
 
-        assertThat(jsonContent).extractingJsonPathNumberValue("$.id").isEqualTo(1);
-        assertThat(jsonContent).extractingJsonPathStringValue("$.text").isEqualTo("Вещь хорошая");
-        assertThat(jsonContent).extractingJsonPathStringValue("$.authorName").isEqualTo("Садовник Джо");
-        assertThat(jsonContent).extractingJsonPathStringValue("$.created").isEqualTo("2023-08-14T12:12:12");
+        Assertions.assertThat(jsonContent).extractingJsonPathNumberValue("$.id").isEqualTo(1);
+        Assertions.assertThat(jsonContent).extractingJsonPathStringValue("$.text").isEqualTo("Вещь хорошая");
+        Assertions.assertThat(jsonContent).extractingJsonPathStringValue("$.authorName").isEqualTo("Садовник Джо");
+        Assertions.assertThat(jsonContent).extractingJsonPathStringValue("$.created").isEqualTo("2023-08-14T12:12:12");
     }
 
 }

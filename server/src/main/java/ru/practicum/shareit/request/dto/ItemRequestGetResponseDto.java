@@ -1,21 +1,24 @@
 package ru.practicum.shareit.request.dto;
 
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Data
-@Builder
+@Getter
+@Setter
+@Builder(toBuilder = true)
 public class ItemRequestGetResponseDto {
     private Long id;
     private String description;
     private LocalDateTime created;
     private List<RequestedItem> items;
 
-    @Data
-    @Builder
+    @Setter
+    @Getter
+    @Builder(toBuilder = true)
     public static class RequestedItem {
         private Long id;
         private String name;

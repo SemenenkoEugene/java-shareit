@@ -1,35 +1,33 @@
 package ru.practicum.shareit.request;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import ru.practicum.shareit.request.dto.ItemRequestCreateDto;
 import ru.practicum.shareit.request.dto.ItemRequestCreateResponseDto;
 import ru.practicum.shareit.request.dto.ItemRequestGetResponseDto;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
-
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyLong;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = ItemRequestController.class)
 class ItemRequestControllerTest {
+
+    private static final Long USER_ID = 1L;
+    private static final String X_SHARER_USER_ID = "X-Sharer-User-Id";
+
+    private static final ItemRequestGetResponseDto ITEM_REQUEST_GET_RESPONSE_DTO = ItemRequestGetResponseDto.builder()
+            .id(10L)
+            .build();
+    private static final List<ItemRequestGetResponseDto> ITEM_REQUEST_GET_RESPONSE_DTO_LIST = List.of(ITEM_REQUEST_GET_RESPONSE_DTO);
 
     @Autowired
     private MockMvc mockMvc;
@@ -40,103 +38,76 @@ class ItemRequestControllerTest {
     @MockitoBean
     private ItemRequestService itemRequestService;
 
+    @SneakyThrows
     @Test
-    void getAllByOwnerIdTest() throws Exception {
-        Long userId = 1L;
+    void getAllByOwnerIdTest() {
 
-        ItemRequestGetResponseDto responseDto1 = getResponseDto(10L);
-        ItemRequestGetResponseDto responseDto2 = getResponseDto(11L);
+        Mockito.when(itemRequestService.getAllByRequestorId(Mockito.anyLong(), Mockito.anyInt(), Mockito.anyInt()))
+                .thenReturn(ITEM_REQUEST_GET_RESPONSE_DTO_LIST);
 
-        List<ItemRequestGetResponseDto> responseDtoList = Arrays.asList(
-                responseDto1,
-                responseDto2
-        );
+        mockMvc.perform(MockMvcRequestBuilders.get("/requests")
+                        .header(X_SHARER_USER_ID, USER_ID))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$[0].id").value(ITEM_REQUEST_GET_RESPONSE_DTO.getId()));
 
-        when(itemRequestService.getAllByRequestorId(eq(userId), anyInt(), anyInt()))
-                .thenReturn(responseDtoList);
-
-        mockMvc.perform(get("/requests")
-                        .header("X-Sharer-User-Id", userId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(responseDto1.getId()))
-                .andExpect(jsonPath("$[1].id").value(responseDto2.getId()));
-
-        verify(itemRequestService, times(1)).getAllByRequestorId(eq(userId), anyInt(), anyInt());
-        verifyNoMoreInteractions(itemRequestService);
+        Mockito.verify(itemRequestService).getAllByRequestorId(Mockito.eq(USER_ID), Mockito.anyInt(), Mockito.anyInt());
+        Mockito.verifyNoMoreInteractions(itemRequestService);
     }
 
+    @SneakyThrows
     @Test
-    void getAllTest() throws Exception {
-        Long userId = 1L;
+    void getAllTest() {
 
-        ItemRequestGetResponseDto responseDto1 = getResponseDto(10L);
-        ItemRequestGetResponseDto responseDto2 = getResponseDto(11L);
+        Mockito.when(itemRequestService.getAll(Mockito.anyLong(), Mockito.anyInt(), Mockito.anyInt()))
+                .thenReturn(ITEM_REQUEST_GET_RESPONSE_DTO_LIST);
 
-        List<ItemRequestGetResponseDto> responseDtoList = Arrays.asList(
-                responseDto1,
-                responseDto2
-        );
+        mockMvc.perform(MockMvcRequestBuilders.get("/requests/all")
+                        .header(X_SHARER_USER_ID, USER_ID))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$[0].id").value(ITEM_REQUEST_GET_RESPONSE_DTO.getId()));
 
-        when(itemRequestService.getAll(eq(userId), anyInt(), anyInt()))
-                .thenReturn(responseDtoList);
-
-        mockMvc.perform(get("/requests/all")
-                        .header("X-Sharer-User-Id", userId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(responseDto1.getId()))
-                .andExpect(jsonPath("$[1].id").value(responseDto2.getId()));
-
-        verify(itemRequestService, times(1)).getAll(eq(userId), anyInt(), anyInt());
-        verifyNoMoreInteractions(itemRequestService);
+        Mockito.verify(itemRequestService).getAll(Mockito.eq(USER_ID), Mockito.anyInt(), Mockito.anyInt());
+        Mockito.verifyNoMoreInteractions(itemRequestService);
     }
 
+    @SneakyThrows
     @Test
-    void getByIdTest() throws Exception {
-        Long userId = 1L;
+    void getByIdTest() {
 
-        ItemRequestGetResponseDto responseDto = getResponseDto(10L);
+        Mockito.when(itemRequestService.getById(Mockito.anyLong(), Mockito.anyLong())).thenReturn(ITEM_REQUEST_GET_RESPONSE_DTO);
 
-        when(itemRequestService.getById(anyLong(), anyLong()))
-                .thenReturn(responseDto);
+        mockMvc.perform(MockMvcRequestBuilders.get("/requests/" + ITEM_REQUEST_GET_RESPONSE_DTO.getId())
+                        .header(X_SHARER_USER_ID, USER_ID))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(ITEM_REQUEST_GET_RESPONSE_DTO.getId()));
 
-        mockMvc.perform(get("/requests/" + responseDto.getId())
-                        .header("X-Sharer-User-Id", userId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(responseDto.getId()));
-
-        verify(itemRequestService, times(1)).getById(anyLong(), anyLong());
-        verifyNoMoreInteractions(itemRequestService);
+        Mockito.verify(itemRequestService).getById(Mockito.eq(USER_ID), Mockito.anyLong());
+        Mockito.verifyNoMoreInteractions(itemRequestService);
     }
 
+    @SneakyThrows
     @Test
-    void createTest() throws Exception {
-        Long userId = 1L;
+    void createTest() {
 
-        ItemRequestCreateDto requestDto = new ItemRequestCreateDto("Test item request");
+        final ItemRequestCreateDto requestDto = new ItemRequestCreateDto("Test item request");
 
-        ItemRequestCreateResponseDto responseDto = ItemRequestCreateResponseDto.builder()
+        final ItemRequestCreateResponseDto responseDto = ItemRequestCreateResponseDto.builder()
                 .id(1L)
                 .build();
 
-        when(itemRequestService.create(any(ItemRequestCreateDto.class), eq(userId)))
-                .thenReturn(responseDto);
+        Mockito.when(itemRequestService.create(Mockito.any(), Mockito.anyLong())).thenReturn(responseDto);
 
-        mockMvc.perform(post("/requests")
-                        .header("X-Sharer-User-Id", userId)
+        mockMvc.perform(MockMvcRequestBuilders.post("/requests")
+                        .header(X_SHARER_USER_ID, USER_ID)
                         .content(objectMapper.writeValueAsString(requestDto))
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(responseDto.getId()));
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(responseDto.getId()));
 
-        verify(itemRequestService, times(1)).create(any(ItemRequestCreateDto.class), eq(userId));
-        verifyNoMoreInteractions(itemRequestService);
+        Mockito.verify(itemRequestService).create(Mockito.any(ItemRequestCreateDto.class), Mockito.eq(USER_ID));
+        Mockito.verifyNoMoreInteractions(itemRequestService);
     }
 
-    private ItemRequestGetResponseDto getResponseDto(Long id) {
-        return ItemRequestGetResponseDto.builder()
-                .id(id)
-                .build();
-    }
 }

@@ -21,49 +21,49 @@ public class CustomExceptionHandler {
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseError validationHandle(ValidationException e) {
+    public ResponseError validationHandle(final ValidationException e) {
         log.error(e.getMessage());
         return new ResponseError(HTTP_STATUS_BAD_REQUEST, e.getMessage());
     }
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ResponseError notFoundHandle(NotFoundException e) {
+    public ResponseError notFoundHandle(final NotFoundException e) {
         log.error(e.getMessage());
         return new ResponseError(HTTP_STATUS_NOT_FOUND, e.getMessage());
     }
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.CONFLICT)
-    public ResponseError userAlreadyExistsHandler(UserAlreadyExistsException e) {
+    public ResponseError userAlreadyExistsHandler(final UserAlreadyExistsException e) {
         log.error(e.getMessage());
         return new ResponseError(HTTP_STATUS_CONFLICT, e.getMessage());
     }
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseError unsupportedStatusHandler(UnsupportedStatusException e) {
+    public ResponseError unsupportedStatusHandler(final UnsupportedStatusException e) {
         log.error(e.getMessage());
         return new ResponseError(HTTP_STATUS_BAD_REQUEST, e.getMessage());
     }
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.FORBIDDEN)
-    public ResponseError itemForbiddenStatusHandler(ItemForbiddenException e) {
+    public ResponseError itemForbiddenStatusHandler(final ItemForbiddenException e) {
         log.error(e.getMessage());
         return new ResponseError("HttpStatus.FORBIDDEN", e.getMessage());
     }
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.CONFLICT)
-    public ResponseError itemAlreadyExistsHandler(ItemAlreadyExistsException e) {
+    public ResponseError itemAlreadyExistsHandler(final ItemAlreadyExistsException e) {
         log.error(e.getMessage());
         return new ResponseError(HTTP_STATUS_CONFLICT, e.getMessage());
     }
 
     @Getter
     @RequiredArgsConstructor
-    private static class ResponseError {
+    public static class ResponseError {
         private final String message;
         private final String error;
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")

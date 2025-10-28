@@ -16,20 +16,20 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping
-    public UserDto create(@RequestBody UserDto userDto) {
+    public UserDto create(@RequestBody final UserDto userDto) {
         log.debug("Получен POST-запрос к эндпоинту: '/users' на добавление пользователя");
         return userService.create(userDto);
     }
 
     @PatchMapping("/{userId}")
-    public UserDto update(@RequestBody UserDto userDto,
-                          @PathVariable Long userId) {
+    public UserDto update(@RequestBody final UserDto userDto,
+                          @PathVariable final Long userId) {
         log.debug("Получен PATCH-запрос к эндпоинту: '/users' на обновление пользователя с ID={}", userId);
         return userService.update(userDto, userId);
     }
 
     @DeleteMapping("/{userId}")
-    public void delete(@PathVariable Long userId) {
+    public void delete(@PathVariable final Long userId) {
         log.debug("Получен DELETE-запрос к эндпоинту: '/users' на удаление пользователя с ID={}", userId);
         userService.delete(userId);
     }
@@ -40,7 +40,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}")
-    public UserDto getUserById(@PathVariable Long userId) {
+    public UserDto getUserById(@PathVariable final Long userId) {
         return userService.getUserById(userId);
     }
 }

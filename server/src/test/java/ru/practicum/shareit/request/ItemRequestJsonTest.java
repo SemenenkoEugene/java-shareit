@@ -1,5 +1,6 @@
 package ru.practicum.shareit.request;
 
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.json.JsonTest;
@@ -12,8 +13,6 @@ import java.time.LocalDateTime;
 import java.time.Month;
 import java.util.List;
 
-import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
-
 @JsonTest
 class ItemRequestJsonTest {
 
@@ -25,26 +24,26 @@ class ItemRequestJsonTest {
 
     @Test
     void itemRequestCreateResponseDtoTest() throws Exception {
-        LocalDateTime timestamp = LocalDateTime.of(2023, Month.AUGUST, 14, 11, 11, 11);
+        final LocalDateTime timestamp = LocalDateTime.of(2023, Month.AUGUST, 14, 11, 11, 11);
 
-        ItemRequestCreateResponseDto itemRequestCreateResponseDto = ItemRequestCreateResponseDto.builder()
+        final ItemRequestCreateResponseDto itemRequestCreateResponseDto = ItemRequestCreateResponseDto.builder()
                 .id(5L)
                 .description("Ищу гараж")
                 .created(timestamp)
                 .build();
 
-        JsonContent<ItemRequestCreateResponseDto> jsonContent = itemRequestCreateResponseDtoJacksonTester.write(itemRequestCreateResponseDto);
+        final JsonContent<ItemRequestCreateResponseDto> jsonContent = itemRequestCreateResponseDtoJacksonTester.write(itemRequestCreateResponseDto);
 
-        assertThat(jsonContent).extractingJsonPathNumberValue("$.id").isEqualTo(5);
-        assertThat(jsonContent).extractingJsonPathStringValue("$.description").isEqualTo("Ищу гараж");
-        assertThat(jsonContent).extractingJsonPathStringValue("$.created").isEqualTo("2023-08-14T11:11:11");
+        Assertions.assertThat(jsonContent).extractingJsonPathNumberValue("$.id").isEqualTo(5);
+        Assertions.assertThat(jsonContent).extractingJsonPathStringValue("$.description").isEqualTo("Ищу гараж");
+        Assertions.assertThat(jsonContent).extractingJsonPathStringValue("$.created").isEqualTo("2023-08-14T11:11:11");
     }
 
     @Test
     void itemRequestGetResponseDtoTest() throws Exception {
-        LocalDateTime timestamp = LocalDateTime.of(2023, Month.AUGUST, 14, 10, 10, 10);
+        final LocalDateTime timestamp = LocalDateTime.of(2023, Month.AUGUST, 14, 10, 10, 10);
 
-        ItemRequestGetResponseDto itemRequestGetResponseDto = ItemRequestGetResponseDto.builder()
+        final ItemRequestGetResponseDto itemRequestGetResponseDto = ItemRequestGetResponseDto.builder()
                 .id(5L)
                 .description("Ищу гараж")
                 .created(timestamp)
@@ -55,20 +54,19 @@ class ItemRequestJsonTest {
                                 .description("Обновлю гараж")
                                 .available(true)
                                 .requestId(5L)
-                                .build()
-                ))
+                                .build()))
                 .build();
 
-        JsonContent<ItemRequestGetResponseDto> jsonContent = itemRequestGetResponseDtoJacksonTester.write(itemRequestGetResponseDto);
+        final JsonContent<ItemRequestGetResponseDto> jsonContent = itemRequestGetResponseDtoJacksonTester.write(itemRequestGetResponseDto);
 
-        assertThat(jsonContent).extractingJsonPathNumberValue("$.id").isEqualTo(5);
-        assertThat(jsonContent).extractingJsonPathStringValue("$.description").isEqualTo("Ищу гараж");
-        assertThat(jsonContent).extractingJsonPathStringValue("$.created").isEqualTo("2023-08-14T10:10:10");
-        assertThat(jsonContent).extractingJsonPathArrayValue("$.items").hasSize(1);
-        assertThat(jsonContent).extractingJsonPathNumberValue("$.items[0].id").isEqualTo(10);
-        assertThat(jsonContent).extractingJsonPathStringValue("$.items[0].name").isEqualTo("Гараж");
-        assertThat(jsonContent).extractingJsonPathStringValue("$.items[0].description").isEqualTo("Обновлю гараж");
-        assertThat(jsonContent).extractingJsonPathBooleanValue("$.items[0].available").isEqualTo(true);
-        assertThat(jsonContent).extractingJsonPathNumberValue("$.items[0].requestId").isEqualTo(5);
+        Assertions.assertThat(jsonContent).extractingJsonPathNumberValue("$.id").isEqualTo(5);
+        Assertions.assertThat(jsonContent).extractingJsonPathStringValue("$.description").isEqualTo("Ищу гараж");
+        Assertions.assertThat(jsonContent).extractingJsonPathStringValue("$.created").isEqualTo("2023-08-14T10:10:10");
+        Assertions.assertThat(jsonContent).extractingJsonPathArrayValue("$.items").hasSize(1);
+        Assertions.assertThat(jsonContent).extractingJsonPathNumberValue("$.items[0].id").isEqualTo(10);
+        Assertions.assertThat(jsonContent).extractingJsonPathStringValue("$.items[0].name").isEqualTo("Гараж");
+        Assertions.assertThat(jsonContent).extractingJsonPathStringValue("$.items[0].description").isEqualTo("Обновлю гараж");
+        Assertions.assertThat(jsonContent).extractingJsonPathBooleanValue("$.items[0].available").isEqualTo(true);
+        Assertions.assertThat(jsonContent).extractingJsonPathNumberValue("$.items[0].requestId").isEqualTo(5);
     }
 }
