@@ -1,13 +1,22 @@
 package ru.practicum.shareit.booking;
 
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT b FROM Booking b WHERE b.id = :bookingId")
+    Optional<Booking> findByIdForUpdate(@Param("bookingId") Long bookingId);
+
     List<Booking> findAllByUserIdOrderByStartDesc(Long userId, Pageable pageable);
 
     List<Booking> findAllByUserIdAndEndBeforeOrderByStartDesc(Long userId, LocalDateTime endDateTime, Pageable pageable);
@@ -30,6 +39,12 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findAllByItemOwnerIdAndStatusOrderByStartDesc(Long ownerId, Status status, Pageable pageable);
 
     List<Booking> findAllByItemId(Long itemId);
+
+    @Query("SELECT b FROM Booking b " +
+           "JOIN FETCH b.item " +
+           "JOIN FETCH b.user " +
+           "WHERE b.item.id IN :itemIds")
+    List<Booking> findAllByItemIdIn(@Param("itemIds") Collection<Long> itemIds);
 
     @Query("SELECT b FROM Booking b " +
            "WHERE b.item.id = :itemId " +

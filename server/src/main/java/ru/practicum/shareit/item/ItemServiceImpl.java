@@ -2,11 +2,11 @@ package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.Booking;
 import ru.practicum.shareit.booking.BookingRepository;
+import ru.practicum.shareit.booking.OffsetBasedPageRequest;
 import ru.practicum.shareit.booking.Status;
 import ru.practicum.shareit.exception.ItemAlreadyExistsException;
 import ru.practicum.shareit.exception.ItemForbiddenException;
@@ -25,8 +25,10 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -101,10 +103,49 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional(readOnly = true)
     public List<ItemDto> getItemsByOwnerId(final Long userId, final int from, final int size) {
-        return itemRepository.findAllByOwnerId(userId, PageRequest.of(from / size, size)).stream()
+        final List<Item> items = itemRepository.findAllByOwnerIdOrderByIdAsc(
+                userId, new OffsetBasedPageRequest(from, size));
+        if (items.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        final List<Long> itemIds = items.stream()
+                .map(Item::getId)
+                .toList();
+        final Map<Long, List<Booking>> bookingsByItemId = bookingRepository.findAllByItemIdIn(itemIds).stream()
+                .collect(Collectors.groupingBy(booking -> booking.getItem().getId()));
+        final Map<Long, List<Comment>> commentsByItemId = commentRepository.findAllByItemIdIn(itemIds).stream()
+                .collect(Collectors.groupingBy(comment -> comment.getItem().getId()));
+
+        return items.stream()
                 .map(ItemMapper::toItemDto)
-                .map(this::addBookingInfo)
-                .map(this::addCommentsInfo)
+                .map(itemDto -> {
+                    final List<Booking> bookings = bookingsByItemId.getOrDefault(itemDto.getId(), List.of());
+                    final Booking nextBooking = bookings.stream()
+                            .filter(booking -> booking.getStart().isAfter(LocalDateTime.now()))
+                            .filter(booking -> booking.getStatus().equals(Status.APPROVED))
+                            .min(Comparator.comparing(Booking::getStart))
+                            .orElse(null);
+                    final LocalDateTime now = LocalDateTime.now();
+                    final Booking lastBooking = bookings.stream()
+                            .filter(booking -> isCompletedAt(booking, now))
+                            .filter(booking -> booking.getStatus().equals(Status.APPROVED))
+                            .max(Comparator.comparing(Booking::getEnd))
+                            .orElse(null);
+
+                    itemDto.setNextBooking(nextBooking != null ? ItemDto.ItemBooking.builder()
+                            .id(nextBooking.getId())
+                            .bookerId(nextBooking.getUser().getId())
+                            .build() : null);
+                    itemDto.setLastBooking(lastBooking != null ? ItemDto.ItemBooking.builder()
+                            .id(lastBooking.getId())
+                            .bookerId(lastBooking.getUser().getId())
+                            .build() : null);
+                    itemDto.setComments(commentsByItemId.getOrDefault(itemDto.getId(), List.of()).stream()
+                            .map(CommentMapper::toCommentDto)
+                            .toList());
+                    return itemDto;
+                })
                 .sorted(Comparator.comparing(ItemDto::getId))
                 .toList();
     }
@@ -115,7 +156,7 @@ public class ItemServiceImpl implements ItemService {
         if (searchText.isBlank()) {
             return Collections.emptyList();
         }
-        return itemRepository.findBySearchText(searchText, PageRequest.of(from / size, size)).stream()
+        return itemRepository.findBySearchText(searchText, new OffsetBasedPageRequest(from, size)).stream()
                 .map(ItemMapper::toItemDto)
                 .toList();
     }
@@ -162,8 +203,10 @@ public class ItemServiceImpl implements ItemService {
                 .min(Comparator.comparing(Booking::getStart))
                 .orElse(null);
 
+        final LocalDateTime now = LocalDateTime.now();
         final Booking lastBooking = bookings.stream()
-                .filter(booking -> booking.getStart().isBefore(LocalDateTime.now()))
+                .filter(booking -> isCompletedAt(booking, now))
+                .filter(booking -> booking.getStatus().equals(Status.APPROVED))
                 .max(Comparator.comparing(Booking::getEnd))
                 .orElse(null);
 
@@ -178,5 +221,9 @@ public class ItemServiceImpl implements ItemService {
                 .build() : null);
 
         return itemDto;
+    }
+
+    private boolean isCompletedAt(final Booking booking, final LocalDateTime timestamp) {
+        return !booking.getEnd().isAfter(timestamp);
     }
 }

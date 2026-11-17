@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
+import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.request.dto.ItemRequestCreateDto;
@@ -76,7 +77,7 @@ class ItemRequestServiceTest {
                 .build();
 
         Mockito.when(itemRequestRepository
-                        .findAllByRequestorIdOrderByCreatedDesc(Mockito.anyLong(), Mockito.any()))
+                        .findAllByRequestorIdOrderByCreatedDescIdDesc(Mockito.anyLong(), Mockito.any()))
                 .thenReturn(List.of(itemRequest1));
         Mockito.when(itemRepository.findAllByItemRequestIn(Mockito.any())).thenReturn(List.of(item));
 
@@ -100,49 +101,124 @@ class ItemRequestServiceTest {
                 });
 
         Mockito.verify(itemRequestRepository)
-                .findAllByRequestorIdOrderByCreatedDesc(Mockito.eq(REQUESTOR.getId()), Mockito.any(Pageable.class));
+                .findAllByRequestorIdOrderByCreatedDescIdDesc(
+                        Mockito.eq(REQUESTOR.getId()), Mockito.any(Pageable.class));
         Mockito.verify(itemRepository).findAllByItemRequestIn(List.of(itemRequest1));
         Mockito.verifyNoMoreInteractions(itemRequestRepository, userRepository, itemRepository);
     }
 
     @Test
-    void getAllTest() {
+    void getAllShouldLoadItemsWithSingleRepositoryCall() {
         final ItemRequest itemRequest1 = ITEM_REQUEST.toBuilder()
                 .requestor(REQUESTOR).build();
+        final ItemRequest itemRequest2 = ITEM_REQUEST.toBuilder()
+                .id(ID_ITEM_REQUEST + 1)
+                .requestor(REQUESTOR).build();
 
-        final Item item = ITEM.toBuilder()
+        final Item item1 = ITEM.toBuilder()
+                .owner(OWNER)
+                .itemRequest(itemRequest1)
+                .build();
+        final Item item2 = ITEM.toBuilder()
+                .id(ID_ITEM + 1)
+                .owner(OWNER)
+                .itemRequest(itemRequest2)
+                .build();
+        final Item item3 = ITEM.toBuilder()
+                .id(ID_ITEM + 2)
                 .owner(OWNER)
                 .itemRequest(itemRequest1)
                 .build();
 
-        Mockito.when(itemRequestRepository.findAllByRequestorIdNotOrderByCreatedDesc(Mockito.anyLong(), Mockito.any()))
-                .thenReturn(List.of(itemRequest1));
-        Mockito.when(itemRepository.findAllByItemRequestId(Mockito.anyLong()))
-                .thenReturn(List.of(item));
+        Mockito.when(userRepository.findById(OWNER.getId())).thenReturn(Optional.of(OWNER));
+        Mockito.when(itemRequestRepository.findAllByRequestorIdNotOrderByCreatedDescIdDesc(
+                        Mockito.anyLong(), Mockito.any()))
+                .thenReturn(List.of(itemRequest1, itemRequest2));
+        Mockito.when(itemRepository.findAllByItemRequestIn(Mockito.any()))
+                .thenReturn(List.of(item1, item2, item3));
 
         final List<ItemRequestGetResponseDto> actual = itemRequestService.getAll(OWNER.getId(), 0, 10);
 
-        Assertions.assertThat(actual).hasSize(1);
-
-        final ItemRequestGetResponseDto dto = actual.getFirst();
-
-        Assertions.assertThat(dto.getId()).isEqualTo(itemRequest1.getId());
-        Assertions.assertThat(dto.getDescription()).isEqualTo(itemRequest1.getDescription());
-        Assertions.assertThat(dto.getItems())
-                .hasSize(1)
-                .first()
-                .satisfies(i -> {
-                    Assertions.assertThat(i.getId()).isEqualTo(item.getId());
-                    Assertions.assertThat(i.getName()).isEqualTo(item.getName());
-                    Assertions.assertThat(i.getDescription()).isEqualTo(item.getDescription());
-                    Assertions.assertThat(i.getAvailable()).isEqualTo(item.getAvailable());
-                    Assertions.assertThat(i.getRequestId()).isEqualTo(item.getItemRequest().getId());
-                });
+        Assertions.assertThat(actual).extracting(ItemRequestGetResponseDto::getId)
+                .containsExactly(itemRequest1.getId(), itemRequest2.getId());
+        Assertions.assertThat(actual.get(0).getItems()).extracting(ItemRequestGetResponseDto.RequestedItem::getId)
+                .containsExactly(item1.getId(), item3.getId());
+        Assertions.assertThat(actual.get(1).getItems()).extracting(ItemRequestGetResponseDto.RequestedItem::getId)
+                .containsExactly(item2.getId());
 
         Mockito.verify(itemRequestRepository)
-                .findAllByRequestorIdNotOrderByCreatedDesc(Mockito.eq(OWNER.getId()), Mockito.any(Pageable.class));
-        Mockito.verify(itemRepository).findAllByItemRequestId(itemRequest1.getId());
+                .findAllByRequestorIdNotOrderByCreatedDescIdDesc(
+                        Mockito.eq(OWNER.getId()), Mockito.any(Pageable.class));
+        Mockito.verify(userRepository).findById(OWNER.getId());
+        Mockito.verify(itemRepository).findAllByItemRequestIn(List.of(itemRequest1, itemRequest2));
         Mockito.verifyNoMoreInteractions(itemRequestRepository, userRepository, itemRepository);
+    }
+
+    @Test
+    void getAllShouldReturnEmptyItemsForRequestWithoutItems() {
+        final ItemRequest itemRequest = ITEM_REQUEST.toBuilder().requestor(REQUESTOR).build();
+        Mockito.when(userRepository.findById(OWNER.getId())).thenReturn(Optional.of(OWNER));
+        Mockito.when(itemRequestRepository.findAllByRequestorIdNotOrderByCreatedDescIdDesc(
+                        Mockito.anyLong(), Mockito.any()))
+                .thenReturn(List.of(itemRequest));
+        Mockito.when(itemRepository.findAllByItemRequestIn(Mockito.any())).thenReturn(List.of());
+
+        final List<ItemRequestGetResponseDto> actual = itemRequestService.getAll(OWNER.getId(), 0, 10);
+
+        Assertions.assertThat(actual).singleElement()
+                .satisfies(dto -> Assertions.assertThat(dto.getItems()).isEmpty());
+        Mockito.verify(itemRepository).findAllByItemRequestIn(List.of(itemRequest));
+    }
+
+    @Test
+    void getAllShouldNotLoadItemsForEmptyPage() {
+        Mockito.when(userRepository.findById(OWNER.getId())).thenReturn(Optional.of(OWNER));
+        Mockito.when(itemRequestRepository.findAllByRequestorIdNotOrderByCreatedDescIdDesc(
+                        Mockito.anyLong(), Mockito.any()))
+                .thenReturn(List.of());
+
+        final List<ItemRequestGetResponseDto> actual = itemRequestService.getAll(OWNER.getId(), 0, 10);
+
+        Assertions.assertThat(actual).isEmpty();
+        Mockito.verify(userRepository).findById(OWNER.getId());
+        Mockito.verify(itemRequestRepository).findAllByRequestorIdNotOrderByCreatedDescIdDesc(
+                Mockito.eq(OWNER.getId()), Mockito.any(Pageable.class));
+        Mockito.verifyNoInteractions(itemRepository);
+    }
+
+    @Test
+    void getAllShouldRejectUnknownUserWithoutLoadingRequests() {
+        Mockito.when(userRepository.findById(OWNER.getId())).thenReturn(Optional.empty());
+
+        Assertions.assertThatThrownBy(() -> itemRequestService.getAll(OWNER.getId(), 0, 10))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("Пользователь не найден");
+
+        Mockito.verify(userRepository).findById(OWNER.getId());
+        Mockito.verifyNoInteractions(itemRequestRepository, itemRepository);
+        Mockito.verifyNoMoreInteractions(userRepository);
+    }
+
+    @Test
+    void getAllShouldPreserveOffsetPaginationAndRepositorySorting() {
+        final int from = 3;
+        final int size = 2;
+        Mockito.when(userRepository.findById(OWNER.getId())).thenReturn(Optional.of(OWNER));
+        Mockito.when(itemRequestRepository.findAllByRequestorIdNotOrderByCreatedDescIdDesc(
+                        Mockito.eq(OWNER.getId()), Mockito.any(Pageable.class)))
+                .thenReturn(List.of());
+
+        final List<ItemRequestGetResponseDto> actual = itemRequestService.getAll(OWNER.getId(), from, size);
+
+        Assertions.assertThat(actual).isEmpty();
+        final org.mockito.ArgumentCaptor<Pageable> pageableCaptor =
+                org.mockito.ArgumentCaptor.forClass(Pageable.class);
+        Mockito.verify(itemRequestRepository).findAllByRequestorIdNotOrderByCreatedDescIdDesc(
+                Mockito.eq(OWNER.getId()), pageableCaptor.capture());
+        Assertions.assertThat(pageableCaptor.getValue().getOffset()).isEqualTo(from);
+        Assertions.assertThat(pageableCaptor.getValue().getPageSize()).isEqualTo(size);
+        Mockito.verify(userRepository).findById(OWNER.getId());
+        Mockito.verifyNoInteractions(itemRepository);
     }
 
     @Test

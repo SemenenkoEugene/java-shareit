@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.validation.OnUpdate;
 
 
 @Slf4j
@@ -31,7 +33,7 @@ public class UserController {
 
     @PatchMapping("/{userId}")
     public ResponseEntity<Object> update(@PathVariable final Long userId,
-                                         @RequestBody final UserDto userDto) {
+                                         @Validated(OnUpdate.class) @RequestBody final UserDto userDto) {
         log.debug("Получен PATCH-запрос к эндпоинту: '/users' на обновление пользователя с ID={}", userId);
         return userClient.update(userId, userDto);
     }

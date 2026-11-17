@@ -5,9 +5,11 @@ import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.validation.OnUpdate;
 
 
 @Slf4j
@@ -37,7 +39,7 @@ public class ItemController {
     @PatchMapping("/{itemId}")
     public ResponseEntity<Object> update(@RequestHeader(X_SHARER_USER_ID) final Long userId,
                                          @PathVariable final Long itemId,
-                                         @RequestBody final ItemDto itemDto) {
+                                         @Validated(OnUpdate.class) @RequestBody final ItemDto itemDto) {
         log.debug("Получен PATCH-запрос к эндпоинту: '/items' на обновление вещи с ID={}", itemId);
         return itemClient.update(userId, itemId, itemDto);
     }

@@ -2,7 +2,6 @@ package ru.practicum.shareit.booking;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,7 +53,7 @@ public class BookingServiceImpl implements BookingService {
                                                   final int from, final int size) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
-        final Pageable pageable = PageRequest.of(from / size, size);
+        final Pageable pageable = new OffsetBasedPageRequest(from, size);
 
         return switch (requestBookingStatus) {
             case ALL -> bookingRepository.findAllByUserIdOrderByStartDesc(userId, pageable).stream()
@@ -89,7 +88,7 @@ public class BookingServiceImpl implements BookingService {
                                                           final int from, final int size) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
-        final Pageable pageable = PageRequest.of(from, size);
+        final Pageable pageable = new OffsetBasedPageRequest(from, size);
 
         return switch (requestBookingStatus) {
             case ALL -> bookingRepository.findAllByItemOwnerIdOrderByStartDesc(userId, pageable).stream()
@@ -135,6 +134,18 @@ public class BookingServiceImpl implements BookingService {
             throw new NotFoundException("Владелец не может бронировать свою вещь");
         }
 
+        if (bookingRequestDto.getStart() == null || bookingRequestDto.getEnd() == null) {
+            throw new ValidationException("Дата начала и окончания бронирования должны быть указаны");
+        }
+
+        if (!bookingRequestDto.getStart().isAfter(LocalDateTime.now())) {
+            throw new ValidationException("Дата начала бронирования должна быть позже текущего времени");
+        }
+
+        if (!bookingRequestDto.getEnd().isAfter(bookingRequestDto.getStart())) {
+            throw new ValidationException("Дата окончания бронирования должна быть позже даты начала");
+        }
+
         final Booking booking = BookingMapper.fromDto(bookingRequestDto);
         booking.setUser(user);
         booking.setItem(item);
@@ -146,7 +157,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingResponseDto approve(final Long bookingId, final boolean approved, final Long userId) {
-        final Booking booking = bookingRepository.findById(bookingId)
+        final Booking booking = bookingRepository.findByIdForUpdate(bookingId)
                 .orElseThrow(() -> new NotFoundException(BOOKING_NOT_FOUND));
         userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));

@@ -4,8 +4,13 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -22,6 +27,7 @@ import ru.practicum.shareit.user.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @ExtendWith(SpringExtension.class)
 class BookingServiceTest {
@@ -176,6 +182,47 @@ class BookingServiceTest {
         Mockito.verifyNoMoreInteractions(itemRepository, userRepository, bookingRepository);
     }
 
+    @ParameterizedTest
+    @MethodSource("userBookingPaginationArguments")
+    void getAllByStateShouldUseFromAsOffset(final int from, final int size,
+                                             final List<Long> expectedBookingIds) {
+        final List<Booking> bookings = Stream.iterate(0, index -> index + 1)
+                .limit(5)
+                .map(index -> BOOKING_1.toBuilder()
+                        .id(100L + index)
+                        .start(LocalDateTime.now().minusDays(index))
+                        .end(LocalDateTime.now().minusDays(index).plusHours(1))
+                        .build())
+                .toList();
+
+        Mockito.when(bookingRepository.findAllByUserIdOrderByStartDesc(Mockito.eq(BOOKER.getId()), Mockito.any()))
+                .thenAnswer(invocation -> {
+                    final Pageable pageable = invocation.getArgument(1);
+                    final int firstIndex = Math.toIntExact(pageable.getOffset());
+                    if (firstIndex >= bookings.size()) {
+                        return List.of();
+                    }
+                    return bookings.subList(firstIndex, Math.min(firstIndex + pageable.getPageSize(), bookings.size()));
+                });
+
+        final List<Long> actualBookingIds = bookingService
+                .getAllByState(RequestBookingStatus.ALL, BOOKER.getId(), from, size).stream()
+                .map(BookingResponseDto::getId)
+                .toList();
+
+        Assertions.assertThat(actualBookingIds).isEqualTo(expectedBookingIds);
+    }
+
+    private static Stream<Arguments> userBookingPaginationArguments() {
+        return Stream.of(
+                Arguments.of(0, 2, List.of(100L, 101L)),
+                Arguments.of(1, 2, List.of(101L, 102L)),
+                Arguments.of(2, 2, List.of(102L, 103L)),
+                Arguments.of(3, 2, List.of(103L, 104L)),
+                Arguments.of(4, 2, List.of(104L))
+        );
+    }
+
     @Test
     void getAllByStateForOwnerTest() {
 
@@ -229,6 +276,248 @@ class BookingServiceTest {
         Mockito.verifyNoMoreInteractions(itemRepository, userRepository, bookingRepository);
     }
 
+    @ParameterizedTest
+    @MethodSource("ownerBookingPaginationArguments")
+    void getAllByStateForOwnerShouldUseFromAsOffset(final int from, final int size,
+                                                    final List<Long> expectedBookingIds) {
+        final List<Booking> bookings = Stream.iterate(0, index -> index + 1)
+                .limit(5)
+                .map(index -> BOOKING_1.toBuilder()
+                        .id(100L + index)
+                        .start(LocalDateTime.now().minusDays(index))
+                        .end(LocalDateTime.now().minusDays(index).plusHours(1))
+                        .build())
+                .toList();
+
+        Mockito.when(bookingRepository.findAllByItemOwnerIdOrderByStartDesc(Mockito.eq(OWNER.getId()), Mockito.any()))
+                .thenAnswer(invocation -> {
+                    final Pageable pageable = invocation.getArgument(1);
+                    final int firstIndex = Math.toIntExact(pageable.getOffset());
+                    if (firstIndex >= bookings.size()) {
+                        return List.of();
+                    }
+                    return bookings.subList(firstIndex, Math.min(firstIndex + pageable.getPageSize(), bookings.size()));
+                });
+
+        final List<Long> actualBookingIds = bookingService
+                .getAllByStateForOwner(RequestBookingStatus.ALL, OWNER.getId(), from, size).stream()
+                .map(BookingResponseDto::getId)
+                .toList();
+
+        Assertions.assertThat(actualBookingIds).isEqualTo(expectedBookingIds);
+    }
+
+    private static Stream<Arguments> ownerBookingPaginationArguments() {
+        return Stream.of(
+                Arguments.of(0, 2, List.of(100L, 101L)),
+                Arguments.of(2, 2, List.of(102L, 103L)),
+                Arguments.of(3, 2, List.of(103L, 104L)),
+                Arguments.of(4, 2, List.of(104L)),
+                Arguments.of(6, 2, List.of())
+        );
+    }
+
+    @Test
+    void createTest() {
+
+        final LocalDateTime start = LocalDateTime.now().plusDays(1);
+        final LocalDateTime end = start.plusDays(2);
+        final BookingRequestDto requestDto = BookingRequestDto.builder()
+                .itemId(ITEM_1.getId())
+                .start(start)
+                .end(end)
+                .build();
+        final Booking savedBooking = Booking.builder()
+                .id(100L)
+                .start(start)
+                .end(end)
+                .status(Status.WAITING)
+                .user(BOOKER)
+                .item(ITEM_1)
+                .build();
+        final ArgumentCaptor<Booking> bookingCaptor = ArgumentCaptor.forClass(Booking.class);
+
+        Mockito.when(userRepository.findById(BOOKER.getId())).thenReturn(Optional.of(BOOKER));
+        Mockito.when(itemRepository.findById(ITEM_1.getId())).thenReturn(Optional.of(ITEM_1));
+        Mockito.when(bookingRepository.save(Mockito.any(Booking.class))).thenReturn(savedBooking);
+
+        final BookingResponseDto responseDto = bookingService.create(requestDto, BOOKER.getId());
+
+        Mockito.verify(userRepository).findById(BOOKER.getId());
+        Mockito.verify(itemRepository).findById(ITEM_1.getId());
+        Mockito.verify(bookingRepository).save(bookingCaptor.capture());
+
+        Assertions.assertThat(bookingCaptor.getValue())
+                .satisfies(booking -> {
+                    Assertions.assertThat(booking.getStatus()).isEqualTo(Status.WAITING);
+                    Assertions.assertThat(booking.getUser()).isEqualTo(BOOKER);
+                    Assertions.assertThat(booking.getItem()).isEqualTo(ITEM_1);
+                    Assertions.assertThat(booking.getStart()).isEqualTo(start);
+                    Assertions.assertThat(booking.getEnd()).isEqualTo(end);
+                });
+        Assertions.assertThat(responseDto)
+                .satisfies(dto -> {
+                    Assertions.assertThat(dto.getId()).isEqualTo(savedBooking.getId());
+                    Assertions.assertThat(dto.getStatus()).isEqualTo(Status.WAITING);
+                    Assertions.assertThat(dto.getBooker().getId()).isEqualTo(BOOKER.getId());
+                    Assertions.assertThat(dto.getItem().getId()).isEqualTo(ITEM_1.getId());
+                    Assertions.assertThat(dto.getItem().getName()).isEqualTo(ITEM_1.getName());
+                    Assertions.assertThat(dto.getStart()).isEqualTo(start);
+                    Assertions.assertThat(dto.getEnd()).isEqualTo(end);
+                });
+        Mockito.verifyNoMoreInteractions(itemRepository, userRepository, bookingRepository);
+    }
+
+    @ParameterizedTest
+    @MethodSource("bookingDateArguments")
+    void createShouldRequireEndAfterStart(final LocalDateTime start, final LocalDateTime end,
+                                          final boolean validDates) {
+        final BookingRequestDto requestDto = BookingRequestDto.builder()
+                .itemId(ITEM_1.getId())
+                .start(start)
+                .end(end)
+                .build();
+        final Booking savedBooking = Booking.builder()
+                .id(100L)
+                .start(start)
+                .end(end)
+                .status(Status.WAITING)
+                .user(BOOKER)
+                .item(ITEM_1)
+                .build();
+
+        Mockito.when(userRepository.findById(BOOKER.getId())).thenReturn(Optional.of(BOOKER));
+        Mockito.when(itemRepository.findById(ITEM_1.getId())).thenReturn(Optional.of(ITEM_1));
+        Mockito.when(bookingRepository.save(Mockito.any(Booking.class))).thenReturn(savedBooking);
+
+        if (validDates) {
+            final BookingResponseDto response = bookingService.create(requestDto, BOOKER.getId());
+
+            Assertions.assertThat(response.getStart()).isEqualTo(start);
+            Assertions.assertThat(response.getEnd()).isEqualTo(end);
+            Mockito.verify(bookingRepository).save(Mockito.any(Booking.class));
+        } else {
+            Assertions.assertThatThrownBy(() -> bookingService.create(requestDto, BOOKER.getId()))
+                    .isInstanceOf(ValidationException.class)
+                    .hasMessage("Дата окончания бронирования должна быть позже даты начала");
+            Mockito.verify(bookingRepository, Mockito.never()).save(Mockito.any(Booking.class));
+        }
+    }
+
+    private static Stream<Arguments> bookingDateArguments() {
+        final LocalDateTime start = LocalDateTime.of(2030, 1, 2, 12, 0);
+        return Stream.of(
+                Arguments.of(start, start.minusMinutes(1), false),
+                Arguments.of(start, start, false),
+                Arguments.of(start, start.plusMinutes(1), true)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("nullBookingDateArguments")
+    void createShouldRejectNullDates(final LocalDateTime start, final LocalDateTime end) {
+        final BookingRequestDto requestDto = BookingRequestDto.builder()
+                .itemId(ITEM_1.getId())
+                .start(start)
+                .end(end)
+                .build();
+
+        Mockito.when(userRepository.findById(BOOKER.getId())).thenReturn(Optional.of(BOOKER));
+        Mockito.when(itemRepository.findById(ITEM_1.getId())).thenReturn(Optional.of(ITEM_1));
+
+        Assertions.assertThatThrownBy(() -> bookingService.create(requestDto, BOOKER.getId()))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("Дата начала и окончания бронирования должны быть указаны");
+        Mockito.verify(bookingRepository, Mockito.never()).save(Mockito.any(Booking.class));
+    }
+
+    private static Stream<Arguments> nullBookingDateArguments() {
+        final LocalDateTime date = LocalDateTime.of(2030, 1, 2, 12, 0);
+        return Stream.of(
+                Arguments.of(null, date),
+                Arguments.of(date, null),
+                Arguments.of(null, null)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("nonFutureStartArguments")
+    void createShouldRequireStartAfterCurrentTime(final LocalDateTime start) {
+        final LocalDateTime now = LocalDateTime.of(2030, 1, 2, 12, 0);
+        final LocalDateTime end = now.plusHours(2);
+        final BookingRequestDto requestDto = BookingRequestDto.builder()
+                .itemId(ITEM_1.getId())
+                .start(start)
+                .end(end)
+                .build();
+        final Booking savedBooking = Booking.builder()
+                .id(100L)
+                .start(start)
+                .end(end)
+                .status(Status.WAITING)
+                .user(BOOKER)
+                .item(ITEM_1)
+                .build();
+
+        Mockito.when(userRepository.findById(BOOKER.getId())).thenReturn(Optional.of(BOOKER));
+        Mockito.when(itemRepository.findById(ITEM_1.getId())).thenReturn(Optional.of(ITEM_1));
+        Mockito.when(bookingRepository.save(Mockito.any(Booking.class))).thenReturn(savedBooking);
+
+        try (MockedStatic<LocalDateTime> localDateTime = Mockito.mockStatic(LocalDateTime.class,
+                Mockito.CALLS_REAL_METHODS)) {
+            localDateTime.when(LocalDateTime::now).thenReturn(now);
+
+            Assertions.assertThatThrownBy(() -> bookingService.create(requestDto, BOOKER.getId()))
+                    .isInstanceOf(ValidationException.class)
+                    .hasMessage("Дата начала бронирования должна быть позже текущего времени");
+        }
+        Mockito.verify(bookingRepository, Mockito.never()).save(Mockito.any(Booking.class));
+    }
+
+    private static Stream<Arguments> nonFutureStartArguments() {
+        final LocalDateTime now = LocalDateTime.of(2030, 1, 2, 12, 0);
+        return Stream.of(
+                Arguments.of(now.minusNanos(1)),
+                Arguments.of(now)
+        );
+    }
+
+    @Test
+    void createTest_UserNotFound() {
+
+        final BookingRequestDto requestDto = BookingRequestDto.builder()
+                .itemId(ITEM_1.getId())
+                .build();
+
+        Mockito.when(userRepository.findById(BOOKER.getId())).thenReturn(Optional.empty());
+
+        Assertions.assertThatThrownBy(() -> bookingService.create(requestDto, BOOKER.getId()))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("Пользователь не найден");
+
+        Mockito.verify(userRepository).findById(BOOKER.getId());
+        Mockito.verifyNoMoreInteractions(itemRepository, userRepository, bookingRepository);
+    }
+
+    @Test
+    void createTest_ItemNotFound() {
+
+        final BookingRequestDto requestDto = BookingRequestDto.builder()
+                .itemId(ITEM_1.getId())
+                .build();
+
+        Mockito.when(userRepository.findById(BOOKER.getId())).thenReturn(Optional.of(BOOKER));
+        Mockito.when(itemRepository.findById(ITEM_1.getId())).thenReturn(Optional.empty());
+
+        Assertions.assertThatThrownBy(() -> bookingService.create(requestDto, BOOKER.getId()))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("Вещь не найдена");
+
+        Mockito.verify(userRepository).findById(BOOKER.getId());
+        Mockito.verify(itemRepository).findById(ITEM_1.getId());
+        Mockito.verifyNoMoreInteractions(itemRepository, userRepository, bookingRepository);
+    }
+
     @Test
     void createTest_NotAvailableItem() {
 
@@ -278,7 +567,7 @@ class BookingServiceTest {
                 .status(Status.WAITING)
                 .build();
 
-        Mockito.when(bookingRepository.findById(Mockito.anyLong())).thenReturn(Optional.of(booking));
+        Mockito.when(bookingRepository.findByIdForUpdate(Mockito.anyLong())).thenReturn(Optional.of(booking));
         Mockito.when(bookingRepository.save(Mockito.any())).thenReturn(booking);
 
         final BookingResponseDto responseDto = bookingService.approve(booking.getId(), true, OWNER.getId());
@@ -289,7 +578,7 @@ class BookingServiceTest {
         Assertions.assertThat(responseDto.getItem().getId()).isEqualTo(ITEM_1.getId());
         Assertions.assertThat(responseDto.getItem().getName()).isEqualTo(ITEM_1.getName());
 
-        Mockito.verify(bookingRepository).findById(booking.getId());
+        Mockito.verify(bookingRepository).findByIdForUpdate(booking.getId());
         Mockito.verify(userRepository).findById(OWNER.getId());
         Mockito.verify(bookingRepository).save(Mockito.any(Booking.class));
         Mockito.verifyNoMoreInteractions(itemRepository, userRepository, bookingRepository);
@@ -302,14 +591,14 @@ class BookingServiceTest {
                 .status(Status.WAITING)
                 .build();
 
-        Mockito.when(bookingRepository.findById(Mockito.anyLong())).thenReturn(Optional.of(booking));
+        Mockito.when(bookingRepository.findByIdForUpdate(Mockito.anyLong())).thenReturn(Optional.of(booking));
         Mockito.when(userRepository.findById(Mockito.anyLong())).thenReturn(Optional.of(BOOKER));
 
         Assertions.assertThatThrownBy(() -> bookingService.approve(booking.getId(), true, BOOKER.getId()))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessage("Подтверждение доступно только для владельца вещи");
 
-        Mockito.verify(bookingRepository).findById(booking.getId());
+        Mockito.verify(bookingRepository).findByIdForUpdate(booking.getId());
         Mockito.verify(userRepository).findById(BOOKER.getId());
         Mockito.verifyNoMoreInteractions(itemRepository, userRepository, bookingRepository);
     }
@@ -321,13 +610,13 @@ class BookingServiceTest {
                 .status(Status.APPROVED)
                 .build();
 
-        Mockito.when(bookingRepository.findById(Mockito.anyLong())).thenReturn(Optional.of(booking));
+        Mockito.when(bookingRepository.findByIdForUpdate(Mockito.anyLong())).thenReturn(Optional.of(booking));
 
         Assertions.assertThatThrownBy(() -> bookingService.approve(booking.getId(), true, OWNER.getId()))
                 .isInstanceOf(ValidationException.class)
                 .hasMessage("Вещь не ожидает подтверждения");
 
-        Mockito.verify(bookingRepository).findById(booking.getId());
+        Mockito.verify(bookingRepository).findByIdForUpdate(booking.getId());
         Mockito.verify(userRepository).findById(OWNER.getId());
         Mockito.verifyNoMoreInteractions(itemRepository, userRepository, bookingRepository);
     }

@@ -2,9 +2,11 @@ package ru.practicum.shareit.item.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import ru.practicum.shareit.validation.OnUpdate;
 
 import java.util.List;
 
@@ -14,8 +16,10 @@ import java.util.List;
 public class ItemDto {
     private Long id;
     @NotBlank
+    @Pattern(regexp = ".*\\S.*", flags = Pattern.Flag.DOTALL, groups = OnUpdate.class)
     private String name;
     @NotBlank
+    @Pattern(regexp = ".*\\S.*", flags = Pattern.Flag.DOTALL, groups = OnUpdate.class)
     private String description;
     @NotNull
     private Boolean available;

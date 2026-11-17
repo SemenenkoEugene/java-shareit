@@ -1,9 +1,9 @@
 package ru.practicum.shareit.request;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.booking.OffsetBasedPageRequest;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.item.model.Item;
@@ -34,7 +34,8 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     @Transactional(readOnly = true)
     public List<ItemRequestGetResponseDto> getAllByRequestorId(final Long userId, final int from, final int size) {
 
-        final List<ItemRequest> itemRequests = itemRequestRepository.findAllByRequestorIdOrderByCreatedDesc(userId, PageRequest.of(from / size, size));
+        final List<ItemRequest> itemRequests = itemRequestRepository.findAllByRequestorIdOrderByCreatedDescIdDesc(
+                userId, new OffsetBasedPageRequest(from, size));
         final Map<Long, List<Item>> itemsRequestId = itemRepository.findAllByItemRequestIn(itemRequests).stream()
                 .collect(Collectors.groupingBy(item -> item.getItemRequest().getId()));
 
@@ -48,10 +49,21 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     @Override
     @Transactional(readOnly = true)
     public List<ItemRequestGetResponseDto> getAll(final Long userId, final int from, final int size) {
-        return itemRequestRepository
-                .findAllByRequestorIdNotOrderByCreatedDesc(userId, PageRequest.of(from / size, size)).stream()
+        userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
+        final List<ItemRequest> itemRequests = itemRequestRepository
+                .findAllByRequestorIdNotOrderByCreatedDescIdDesc(
+                        userId, new OffsetBasedPageRequest(from, size));
+        if (itemRequests.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        final Map<Long, List<Item>> itemsByRequestId = itemRepository.findAllByItemRequestIn(itemRequests).stream()
+                .collect(Collectors.groupingBy(item -> item.getItemRequest().getId()));
+
+        return itemRequests.stream()
                 .map(ItemRequestMapper::toGetResponseDto)
-                .map(this::addItemInfo)
+                .map(dto -> addItemInfo(itemsByRequestId.get(dto.getId()), dto))
                 .toList();
     }
 
