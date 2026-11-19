@@ -1,3 +1,20 @@
-FROM amazoncorretto:11-alpine-jdk
-COPY target/*.jar app.jar
-ENTRYPOINT ["java","-jar","/app.jar"]
+FROM eclipse-temurin:21-jdk-alpine AS builder
+
+WORKDIR /workspace
+COPY . .
+RUN sed -i 's/\r$//' gradlew \
+    && chmod +x gradlew \
+    && ./gradlew --no-daemon :server:bootJar \
+    && find server/build/libs -type f -name '*.jar' ! -name '*-plain.jar' \
+        -exec cp {} /app.jar \;
+
+FROM eclipse-temurin:21-jre-alpine
+
+WORKDIR /app
+RUN addgroup -S shareit \
+    && adduser -S shareit -G shareit
+COPY --from=builder --chown=shareit:shareit /app.jar app.jar
+
+USER shareit
+EXPOSE 9090
+ENTRYPOINT ["java", "-jar", "app.jar"]

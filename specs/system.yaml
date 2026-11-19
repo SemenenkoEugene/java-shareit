@@ -71,3 +71,15 @@ validation:
   gateway: "Jakarta Validation generated request records активируется в HTTP-контроллерах через @Valid; параметры контроллеров валидируются там, где настроен method validation"
   server: "Generated records содержат Jakarta-аннотации, но server-контроллеры не используют @Valid для @RequestBody; HTTP-валидация из одних аннотаций автоматически не активна, бизнес-валидация остаётся в сервисах"
 
+deployment:
+  docker:
+    compose_file: docker-compose.yml
+    build_context: "Корень проекта, необходимый для Gradle multi-module сборки и генерации api-contract"
+    runtime: "Eclipse Temurin JRE 21; приложения запускаются непривилегированным пользователем shareit"
+    startup_order: "PostgreSQL -> server -> gateway, с ожиданием health checks"
+    persistence: "Именованный volume shareit-db-data хранит данные PostgreSQL"
+    published_ports:
+      gateway: 8080
+      server: 9090
+      postgresql: 6541
+
