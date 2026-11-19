@@ -1,5 +1,7 @@
 package ru.practicum.shareit.request;
 
+import jakarta.validation.Validator;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -11,7 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import ru.practicum.shareit.request.dto.ItemRequestCreateDto;
+import ru.practicum.shareit.generated.request.dto.CreateItemRequestRequest;
 
 import java.util.Map;
 
@@ -28,12 +30,15 @@ class ItemRequestControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private Validator validator;
+
     @MockitoBean
     private ItemRequestClient itemRequestClient;
 
     @Test
     void createShouldForwardValidRequestAndReturnClientResponse() throws Exception {
-        Mockito.when(itemRequestClient.create(Mockito.eq(USER_ID), Mockito.any(ItemRequestCreateDto.class)))
+        Mockito.when(itemRequestClient.create(Mockito.eq(USER_ID), Mockito.any(CreateItemRequestRequest.class)))
                 .thenReturn(ResponseEntity.status(201)
                         .body(Map.of("id", REQUEST_ID, "description", "Need a drill")));
 
@@ -46,16 +51,34 @@ class ItemRequestControllerTest {
                 .andExpect(jsonPath("$.description").value("Need a drill"));
 
         Mockito.verify(itemRequestClient).create(Mockito.eq(USER_ID), Mockito.argThat(request ->
-                "Need a drill".equals(request.getDescription())));
+                "Need a drill".equals(request.description())));
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"{}", "{\"description\":\"\"}", "{\"description\":\"   \"}"})
+    @ValueSource(strings = {"{}", "{\"description\":null}", "{\"description\":\"\"}",
+            "{\"description\":\"   \"}"})
     void createShouldRejectMissingOrBlankDescription(final String body) throws Exception {
         mockMvc.perform(post("/requests")
                         .header(ItemRequestController.X_SHARER_USER_ID, USER_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
+                .andExpect(status().isBadRequest());
+
+        Mockito.verifyNoInteractions(itemRequestClient);
+    }
+
+    @Test
+    void createShouldRejectUnicodeWhitespaceDescription() throws Exception {
+        final CreateItemRequestRequest request = CreateItemRequestRequest.builder()
+                .description("\u001C")
+                .build();
+        Assertions.assertFalse(validator.validate(request).isEmpty(),
+                "Generated @NotBlank must reject U+001C");
+
+        mockMvc.perform(post("/requests")
+                        .header(ItemRequestController.X_SHARER_USER_ID, USER_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"description\":\"\\u001C\"}"))
                 .andExpect(status().isBadRequest());
 
         Mockito.verifyNoInteractions(itemRequestClient);

@@ -61,6 +61,15 @@
 - Gateway and server maintain separate copies of parts of the HTTP contract. When an endpoint, DTO, enum, header, query parameter, status, or serialization shape changes, inspect and update both sides together and cover the contract with relevant tests.
 - These conventions describe the current architecture; do not apply them mechanically when they would prevent a correct, scoped solution. Document and justify deliberate deviations.
 
+### Specification-Driven Development
+
+- Treat `specs/system.yaml` as the architecture and system-constraints specification, `specs/domains/*.yaml` as the business-rules and observed-behavior specifications, and `specs/openapi/*.yaml` as the HTTP contracts and DTO-generation sources.
+- For new functionality or behavior changes, first identify the affected business rules and agree on the specification change. Update the relevant domain YAML, update OpenAPI when the HTTP contract changes, generate DTOs through Gradle, and only then change Java code and tests.
+- For defect fixes, record the difference between actual and expected behavior, do not promote an existing defect to a requirement, and synchronize the specifications with the confirmed fix.
+- Never edit or commit `build/generated/**`. Change generated DTOs only through OpenAPI YAML and Gradle generation tasks.
+- Verify gateway/server compatibility, JSON contracts, nullability, and Jakarta Validation. Run affected-module tests and, for substantial changes, `clean build`; do not weaken Checkstyle, PMD, or JaCoCo to make checks pass.
+- Do not invent business requirements. Record unconfirmed facts under `unknown` and leave unrelated defects for a separate task.
+
 ### Transactions and Persistence
 
 - Define transaction boundaries in the server service layer: use `@Transactional(readOnly = true)` for read operations and `@Transactional` for writes when transaction management is needed.

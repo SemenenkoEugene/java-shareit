@@ -1,0 +1,156 @@
+domain: users
+
+contracts:
+  request_dtos:
+    create_user:
+      name: CreateUserRequest
+      module: api-contract
+      package: ru.practicum.shareit.generated.user.dto
+      source: openapi_generated
+      openapi_schema: "specs/openapi/users.yaml#/components/schemas/CreateUserRequest"
+      fields: [id, name, email]
+    update_user:
+      name: UpdateUserRequest
+      module: api-contract
+      package: ru.practicum.shareit.generated.user.dto
+      source: openapi_generated
+      openapi_schema: "specs/openapi/users.yaml#/components/schemas/UpdateUserRequest"
+      fields: [id, name, email]
+  response_dtos:
+    user:
+      name: UserResponse
+      module: api-contract
+      package: ru.practicum.shareit.generated.user.dto
+      source: openapi_generated
+      openapi_schema: "specs/openapi/users.yaml#/components/schemas/UserResponse"
+      fields: [id, name, email]
+  entities:
+    user:
+      name: User
+      table: users
+      fields:
+        id: { column: user_id, generated: IDENTITY, database_nullable: false }
+        name: { column: user_name, database_nullable: false }
+        email:
+          column: email
+          jpa_unique: true
+          database_type: "VARCHAR(512)"
+          database_nullable: false
+          database_unique: true
+
+endpoints:
+  - id: USR-API-001
+    operation: create_user
+    method: POST
+    path: /users
+    parameters: []
+    request: CreateUserRequest
+    response: UserResponse
+    success_http_status: 200
+  - id: USR-API-002
+    operation: update_user
+    method: PATCH
+    path: /users/{userId}
+    parameters:
+      - { name: userId, in: path, type: Long, required: true }
+    request: UpdateUserRequest
+    response: UserResponse
+    success_http_status: 200
+  - id: USR-API-003
+    operation: delete_user
+    method: DELETE
+    path: /users/{userId}
+    parameters:
+      - { name: userId, in: path, type: Long, required: true }
+    request: null
+    response: null
+    success_http_status: 200
+  - id: USR-API-004
+    operation: get_users
+    method: GET
+    path: /users
+    parameters: []
+    request: null
+    response: "List<UserResponse>"
+    success_http_status: 200
+  - id: USR-API-005
+    operation: get_user_by_id
+    method: GET
+    path: /users/{userId}
+    parameters:
+      - { name: userId, in: path, type: Long, required: true }
+    request: null
+    response: UserResponse
+    success_http_status: 200
+
+operations:
+  create_user:
+    service: UserServiceImpl.create
+    persistence: "UserMapper.toUser, then UserRepository.save"
+    transaction: read_write
+  update_user:
+    service: UserServiceImpl.update
+    persistence: "Loads User by id, applies present fields, then UserRepository.save"
+    null_fields_behavior: "If both name and email are null, the existing user is saved and returned unchanged."
+    transaction: read_write
+  delete_user:
+    service: UserServiceImpl.delete
+    persistence: UserRepository.deleteById
+    missing_id_behavior: "No-op; the endpoint completes with HTTP 200."
+    transaction: read_write
+  get_user_by_id:
+    service: UserServiceImpl.getUserById
+    transaction: read_only
+  get_users:
+    service: UserServiceImpl.getUsers
+    transaction: read_only
+
+business_rules:
+  - id: USR-001
+    rule: "User.email is declared unique both by @Column(unique = true) and by UNIQUE in schema.sql."
+    enforcement: "DataIntegrityViolationException thrown by UserRepository.save during create or update becomes UserAlreadyExistsException."
+  - id: USR-002
+    rule: "Update changes name and email independently only when the corresponding DTO field is non-null."
+  - id: USR-003
+    rule: "Update and get by id require an existing user."
+    enforcement: "Missing user causes NotFoundException."
+  - id: USR-004
+    rule: "PATCH accepts null name and null email; null fields do not replace stored values."
+  - id: USR-005
+    rule: "DELETE is idempotent for a non-existent userId because JpaRepository.deleteById performs no deletion when findById is empty."
+
+validation:
+  gateway:
+    create:
+      trigger: "@Valid"
+      failure_http_status: 400
+      constraints:
+        name: [NotNull, "Pattern: contains a non-whitespace character"]
+        email: [NotNull, Email, "Pattern: contains a non-whitespace character"]
+    update:
+      trigger: "@Valid"
+      failure_http_status: 400
+      constraints:
+        name: ["Pattern: contains a non-whitespace character"]
+        email: [Email, "Pattern: contains a non-whitespace character"]
+  server:
+    generated_record_constraints: "Присутствуют в shared records из api-contract"
+    controller_body_validation: "Не активирована: @RequestBody не аннотированы @Valid"
+    business_validation: [USR-001, USR-003]
+
+errors:
+  - condition: "DataIntegrityViolationException thrown by UserRepository.save during create or update, including a detected UNIQUE(email) violation"
+    exception: UserAlreadyExistsException
+    http_status: 409
+  - condition: "User does not exist during update or get by id"
+    exception: NotFoundException
+    http_status: 404
+  - condition: "IllegalArgumentException or ConstraintViolationException handled by gateway ErrorHandler"
+    http_status: 400
+  - condition: "Gateway request-body Jakarta Validation failure"
+    exception: MethodArgumentNotValidException
+    handler: "Spring MVC default exception resolution; not the custom ErrorHandler"
+    http_status: 400
+
+unknown:
+  - "HTTP status is unknown if DataIntegrityViolationException occurs outside the save calls' try/catch, including during transaction completion."

@@ -14,7 +14,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import ru.practicum.shareit.booking.Booking;
 import ru.practicum.shareit.booking.Status;
-import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.generated.item.dto.ItemResponse;
 import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.request.ItemRequest;
@@ -45,9 +45,9 @@ class ItemServiceQueryTest {
         final User owner = persistOwner("owner-items@test.ru");
         final List<Item> items = persistItems(owner, "Owner item");
 
-        final List<ItemDto> result = itemService.getItemsByOwnerId(owner.getId(), from, size);
+        final List<ItemResponse> result = itemService.getItemsByOwnerId(owner.getId(), from, size);
 
-        Assertions.assertThat(result).extracting(ItemDto::getId)
+        Assertions.assertThat(result).extracting(ItemResponse::id)
                 .containsExactlyElementsOf(idsAtIndexes(items, expectedIndexes));
     }
 
@@ -58,9 +58,9 @@ class ItemServiceQueryTest {
         final User owner = persistOwner("owner-search@test.ru");
         final List<Item> items = persistItems(owner, "Searchable item");
 
-        final List<ItemDto> result = itemService.getItemsBySearchQuery("Searchable", from, size);
+        final List<ItemResponse> result = itemService.getItemsBySearchQuery("Searchable", from, size);
 
-        Assertions.assertThat(result).extracting(ItemDto::getId)
+        Assertions.assertThat(result).extracting(ItemResponse::id)
                 .containsExactlyElementsOf(idsAtIndexes(items, expectedIndexes));
     }
 
@@ -119,11 +119,11 @@ class ItemServiceQueryTest {
         testEntityManager.clear();
         statistics.clear();
 
-        final List<ItemDto> result = itemService.getItemsByOwnerId(ownerId, 0, size);
+        final List<ItemResponse> result = itemService.getItemsByOwnerId(ownerId, 0, size);
 
         Assertions.assertThat(result).hasSize(size);
-        Assertions.assertThat(result).extracting(ItemDto::getId).isSorted();
-        Assertions.assertThat(result).extracting(ItemDto::getRequestId).doesNotContainNull();
+        Assertions.assertThat(result).extracting(ItemResponse::id).isSorted();
+        Assertions.assertThat(result).extracting(ItemResponse::requestId).doesNotContainNull();
 
         return statistics.getPrepareStatementCount();
     }

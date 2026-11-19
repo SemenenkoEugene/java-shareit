@@ -9,11 +9,12 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
 import ru.practicum.shareit.exception.NotFoundException;
+import ru.practicum.shareit.generated.request.dto.CreateItemRequestRequest;
+import ru.practicum.shareit.generated.request.dto.ItemRequestCreateResponse;
+import ru.practicum.shareit.generated.request.dto.ItemRequestResponse;
+import ru.practicum.shareit.generated.request.dto.RequestedItemResponse;
 import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.request.dto.ItemRequestCreateDto;
-import ru.practicum.shareit.request.dto.ItemRequestCreateResponseDto;
-import ru.practicum.shareit.request.dto.ItemRequestGetResponseDto;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserRepository;
 
@@ -52,7 +53,8 @@ class ItemRequestServiceTest {
             .description("Request " + ID_ITEM_REQUEST)
             .build();
 
-    private static final ItemRequestCreateDto ITEM_REQUEST_CREATE_DTO = ItemRequestCreateDto.builder().build();
+    private static final CreateItemRequestRequest ITEM_REQUEST_CREATE_DTO =
+            CreateItemRequestRequest.builder().build();
 
     @Mock
     private ItemRequestRepository itemRequestRepository;
@@ -81,23 +83,24 @@ class ItemRequestServiceTest {
                 .thenReturn(List.of(itemRequest1));
         Mockito.when(itemRepository.findAllByItemRequestIn(Mockito.any())).thenReturn(List.of(item));
 
-        final List<ItemRequestGetResponseDto> resultDtoList = itemRequestService.getAllByRequestorId(REQUESTOR.getId(), 0, 10);
+        final List<ItemRequestResponse> resultDtoList =
+                itemRequestService.getAllByRequestorId(REQUESTOR.getId(), 0, 10);
 
         Assertions.assertThat(resultDtoList).hasSize(1);
 
-        final ItemRequestGetResponseDto actual = resultDtoList.getFirst();
+        final ItemRequestResponse actual = resultDtoList.getFirst();
 
-        Assertions.assertThat(actual.getId()).isEqualTo(itemRequest1.getId());
-        Assertions.assertThat(actual.getDescription()).isEqualTo(itemRequest1.getDescription());
-        Assertions.assertThat(actual.getItems())
+        Assertions.assertThat(actual.id()).isEqualTo(itemRequest1.getId());
+        Assertions.assertThat(actual.description()).isEqualTo(itemRequest1.getDescription());
+        Assertions.assertThat(actual.items())
                 .hasSize(1)
                 .first()
                 .satisfies(i -> {
-                    Assertions.assertThat(i.getId()).isEqualTo(item.getId());
-                    Assertions.assertThat(i.getName()).isEqualTo(item.getName());
-                    Assertions.assertThat(i.getDescription()).isEqualTo(item.getDescription());
-                    Assertions.assertThat(i.getAvailable()).isEqualTo(item.getAvailable());
-                    Assertions.assertThat(i.getRequestId()).isEqualTo(item.getItemRequest().getId());
+                    Assertions.assertThat(i.id()).isEqualTo(item.getId());
+                    Assertions.assertThat(i.name()).isEqualTo(item.getName());
+                    Assertions.assertThat(i.description()).isEqualTo(item.getDescription());
+                    Assertions.assertThat(i.available()).isEqualTo(item.getAvailable());
+                    Assertions.assertThat(i.requestId()).isEqualTo(item.getItemRequest().getId());
                 });
 
         Mockito.verify(itemRequestRepository)
@@ -137,13 +140,13 @@ class ItemRequestServiceTest {
         Mockito.when(itemRepository.findAllByItemRequestIn(Mockito.any()))
                 .thenReturn(List.of(item1, item2, item3));
 
-        final List<ItemRequestGetResponseDto> actual = itemRequestService.getAll(OWNER.getId(), 0, 10);
+        final List<ItemRequestResponse> actual = itemRequestService.getAll(OWNER.getId(), 0, 10);
 
-        Assertions.assertThat(actual).extracting(ItemRequestGetResponseDto::getId)
+        Assertions.assertThat(actual).extracting(ItemRequestResponse::id)
                 .containsExactly(itemRequest1.getId(), itemRequest2.getId());
-        Assertions.assertThat(actual.get(0).getItems()).extracting(ItemRequestGetResponseDto.RequestedItem::getId)
+        Assertions.assertThat(actual.get(0).items()).extracting(RequestedItemResponse::id)
                 .containsExactly(item1.getId(), item3.getId());
-        Assertions.assertThat(actual.get(1).getItems()).extracting(ItemRequestGetResponseDto.RequestedItem::getId)
+        Assertions.assertThat(actual.get(1).items()).extracting(RequestedItemResponse::id)
                 .containsExactly(item2.getId());
 
         Mockito.verify(itemRequestRepository)
@@ -163,10 +166,10 @@ class ItemRequestServiceTest {
                 .thenReturn(List.of(itemRequest));
         Mockito.when(itemRepository.findAllByItemRequestIn(Mockito.any())).thenReturn(List.of());
 
-        final List<ItemRequestGetResponseDto> actual = itemRequestService.getAll(OWNER.getId(), 0, 10);
+        final List<ItemRequestResponse> actual = itemRequestService.getAll(OWNER.getId(), 0, 10);
 
         Assertions.assertThat(actual).singleElement()
-                .satisfies(dto -> Assertions.assertThat(dto.getItems()).isEmpty());
+                .satisfies(dto -> Assertions.assertThat(dto.items()).isEmpty());
         Mockito.verify(itemRepository).findAllByItemRequestIn(List.of(itemRequest));
     }
 
@@ -177,7 +180,7 @@ class ItemRequestServiceTest {
                         Mockito.anyLong(), Mockito.any()))
                 .thenReturn(List.of());
 
-        final List<ItemRequestGetResponseDto> actual = itemRequestService.getAll(OWNER.getId(), 0, 10);
+        final List<ItemRequestResponse> actual = itemRequestService.getAll(OWNER.getId(), 0, 10);
 
         Assertions.assertThat(actual).isEmpty();
         Mockito.verify(userRepository).findById(OWNER.getId());
@@ -208,7 +211,7 @@ class ItemRequestServiceTest {
                         Mockito.eq(OWNER.getId()), Mockito.any(Pageable.class)))
                 .thenReturn(List.of());
 
-        final List<ItemRequestGetResponseDto> actual = itemRequestService.getAll(OWNER.getId(), from, size);
+        final List<ItemRequestResponse> actual = itemRequestService.getAll(OWNER.getId(), from, size);
 
         Assertions.assertThat(actual).isEmpty();
         final org.mockito.ArgumentCaptor<Pageable> pageableCaptor =
@@ -234,19 +237,19 @@ class ItemRequestServiceTest {
         Mockito.when(itemRequestRepository.findById(Mockito.anyLong())).thenReturn(Optional.of(ITEM_REQUEST));
         Mockito.when(itemRepository.findAllByItemRequestId(Mockito.anyLong())).thenReturn(List.of(item));
 
-        final ItemRequestGetResponseDto actual = itemRequestService.getById(REQUESTOR.getId(), ITEM_REQUEST.getId());
+        final ItemRequestResponse actual = itemRequestService.getById(REQUESTOR.getId(), ITEM_REQUEST.getId());
 
-        Assertions.assertThat(actual.getId()).isEqualTo(ITEM_REQUEST.getId());
-        Assertions.assertThat(actual.getDescription()).isEqualTo(ITEM_REQUEST.getDescription());
-        Assertions.assertThat(actual.getItems())
+        Assertions.assertThat(actual.id()).isEqualTo(ITEM_REQUEST.getId());
+        Assertions.assertThat(actual.description()).isEqualTo(ITEM_REQUEST.getDescription());
+        Assertions.assertThat(actual.items())
                 .hasSize(1)
                 .first()
                 .satisfies(i -> {
-                    Assertions.assertThat(i.getId()).isEqualTo(item.getId());
-                    Assertions.assertThat(i.getName()).isEqualTo(item.getName());
-                    Assertions.assertThat(i.getDescription()).isEqualTo(item.getDescription());
-                    Assertions.assertThat(i.getAvailable()).isEqualTo(item.getAvailable());
-                    Assertions.assertThat(i.getRequestId()).isEqualTo(item.getItemRequest().getId());
+                    Assertions.assertThat(i.id()).isEqualTo(item.getId());
+                    Assertions.assertThat(i.name()).isEqualTo(item.getName());
+                    Assertions.assertThat(i.description()).isEqualTo(item.getDescription());
+                    Assertions.assertThat(i.available()).isEqualTo(item.getAvailable());
+                    Assertions.assertThat(i.requestId()).isEqualTo(item.getItemRequest().getId());
                 });
 
         Mockito.verify(itemRequestRepository).findById(ITEM_REQUEST.getId());
@@ -259,10 +262,10 @@ class ItemRequestServiceTest {
         Mockito.when(userRepository.findById(Mockito.anyLong())).thenReturn(Optional.of(OWNER));
         Mockito.when(itemRequestRepository.save(Mockito.any())).thenReturn(ITEM_REQUEST);
 
-        final ItemRequestCreateResponseDto actual = itemRequestService.create(ITEM_REQUEST_CREATE_DTO, OWNER.getId());
+        final ItemRequestCreateResponse actual = itemRequestService.create(ITEM_REQUEST_CREATE_DTO, OWNER.getId());
 
-        Assertions.assertThat(actual.getId()).isEqualTo(ITEM_REQUEST.getId());
-        Assertions.assertThat(actual.getDescription()).isEqualTo(ITEM_REQUEST.getDescription());
+        Assertions.assertThat(actual.id()).isEqualTo(ITEM_REQUEST.getId());
+        Assertions.assertThat(actual.description()).isEqualTo(ITEM_REQUEST.getDescription());
 
         Mockito.verify(userRepository).findById(OWNER.getId());
         Mockito.verify(itemRequestRepository).save(Mockito.any(ItemRequest.class));

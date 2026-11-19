@@ -6,8 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.json.JsonTest;
 import org.springframework.boot.test.json.JacksonTester;
 import org.springframework.boot.test.json.JsonContent;
-import ru.practicum.shareit.request.dto.ItemRequestCreateResponseDto;
-import ru.practicum.shareit.request.dto.ItemRequestGetResponseDto;
+import ru.practicum.shareit.generated.request.dto.ItemRequestCreateResponse;
+import ru.practicum.shareit.generated.request.dto.ItemRequestResponse;
+import ru.practicum.shareit.generated.request.dto.RequestedItemResponse;
 
 import java.time.LocalDateTime;
 import java.time.Month;
@@ -17,22 +18,23 @@ import java.util.List;
 class ItemRequestJsonTest {
 
     @Autowired
-    private JacksonTester<ItemRequestCreateResponseDto> itemRequestCreateResponseDtoJacksonTester;
+    private JacksonTester<ItemRequestCreateResponse> itemRequestCreateResponseJacksonTester;
 
     @Autowired
-    private JacksonTester<ItemRequestGetResponseDto> itemRequestGetResponseDtoJacksonTester;
+    private JacksonTester<ItemRequestResponse> itemRequestResponseJacksonTester;
 
     @Test
     void itemRequestCreateResponseDtoTest() throws Exception {
         final LocalDateTime timestamp = LocalDateTime.of(2023, Month.AUGUST, 14, 11, 11, 11);
 
-        final ItemRequestCreateResponseDto itemRequestCreateResponseDto = ItemRequestCreateResponseDto.builder()
+        final ItemRequestCreateResponse itemRequestCreateResponse = ItemRequestCreateResponse.builder()
                 .id(5L)
                 .description("Ищу гараж")
                 .created(timestamp)
                 .build();
 
-        final JsonContent<ItemRequestCreateResponseDto> jsonContent = itemRequestCreateResponseDtoJacksonTester.write(itemRequestCreateResponseDto);
+        final JsonContent<ItemRequestCreateResponse> jsonContent =
+                itemRequestCreateResponseJacksonTester.write(itemRequestCreateResponse);
 
         Assertions.assertThat(jsonContent).extractingJsonPathNumberValue("$.id").isEqualTo(5);
         Assertions.assertThat(jsonContent).extractingJsonPathStringValue("$.description").isEqualTo("Ищу гараж");
@@ -43,12 +45,12 @@ class ItemRequestJsonTest {
     void itemRequestGetResponseDtoTest() throws Exception {
         final LocalDateTime timestamp = LocalDateTime.of(2023, Month.AUGUST, 14, 10, 10, 10);
 
-        final ItemRequestGetResponseDto itemRequestGetResponseDto = ItemRequestGetResponseDto.builder()
+        final ItemRequestResponse itemRequestResponse = ItemRequestResponse.builder()
                 .id(5L)
                 .description("Ищу гараж")
                 .created(timestamp)
                 .items(List.of(
-                        ItemRequestGetResponseDto.RequestedItem.builder()
+                        RequestedItemResponse.builder()
                                 .id(10L)
                                 .name("Гараж")
                                 .description("Обновлю гараж")
@@ -57,7 +59,8 @@ class ItemRequestJsonTest {
                                 .build()))
                 .build();
 
-        final JsonContent<ItemRequestGetResponseDto> jsonContent = itemRequestGetResponseDtoJacksonTester.write(itemRequestGetResponseDto);
+        final JsonContent<ItemRequestResponse> jsonContent =
+                itemRequestResponseJacksonTester.write(itemRequestResponse);
 
         Assertions.assertThat(jsonContent).extractingJsonPathNumberValue("$.id").isEqualTo(5);
         Assertions.assertThat(jsonContent).extractingJsonPathStringValue("$.description").isEqualTo("Ищу гараж");
@@ -68,5 +71,19 @@ class ItemRequestJsonTest {
         Assertions.assertThat(jsonContent).extractingJsonPathStringValue("$.items[0].description").isEqualTo("Обновлю гараж");
         Assertions.assertThat(jsonContent).extractingJsonPathBooleanValue("$.items[0].available").isEqualTo(true);
         Assertions.assertThat(jsonContent).extractingJsonPathNumberValue("$.items[0].requestId").isEqualTo(5);
+    }
+
+    @Test
+    void itemRequestResponseNullAndEmptyItemsTest() throws Exception {
+        final JsonContent<ItemRequestResponse> nullItemsJson =
+                itemRequestResponseJacksonTester.write(ItemRequestResponse.builder().build());
+        final JsonContent<ItemRequestResponse> emptyItemsJson =
+                itemRequestResponseJacksonTester.write(ItemRequestResponse.builder().items(List.of()).build());
+
+        Assertions.assertThat(nullItemsJson).extractingJsonPathValue("$.id").isNull();
+        Assertions.assertThat(nullItemsJson).extractingJsonPathValue("$.description").isNull();
+        Assertions.assertThat(nullItemsJson).extractingJsonPathValue("$.created").isNull();
+        Assertions.assertThat(nullItemsJson).extractingJsonPathValue("$.items").isNull();
+        Assertions.assertThat(emptyItemsJson).extractingJsonPathArrayValue("$.items").isEmpty();
     }
 }

@@ -6,26 +6,38 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.json.JsonTest;
 import org.springframework.boot.test.json.JacksonTester;
 import org.springframework.boot.test.json.JsonContent;
-import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.generated.user.dto.UserResponse;
 
 @JsonTest
 class UserJsonTest {
 
     @Autowired
-    private JacksonTester<UserDto> userDtoJacksonTester;
+    private JacksonTester<UserResponse> userResponseJacksonTester;
 
     @Test
-    void testUserDto() throws Exception {
-        final UserDto userDto = UserDto.builder()
+    void testUserResponse() throws Exception {
+        final UserResponse userResponse = UserResponse.builder()
                 .id(5L)
                 .name("User")
                 .email("user@mail.ru")
                 .build();
 
-        final JsonContent<UserDto> jsonContent = userDtoJacksonTester.write(userDto);
+        final JsonContent<UserResponse> jsonContent = userResponseJacksonTester.write(userResponse);
 
         Assertions.assertThat(jsonContent).extractingJsonPathNumberValue("$.id").isEqualTo(5);
         Assertions.assertThat(jsonContent).extractingJsonPathStringValue("$.name").isEqualTo("User");
         Assertions.assertThat(jsonContent).extractingJsonPathStringValue("$.email").isEqualTo("user@mail.ru");
+    }
+
+    @Test
+    void shouldSerializeNullableFields() throws Exception {
+        final JsonContent<UserResponse> jsonContent = userResponseJacksonTester.write(
+                UserResponse.builder().id(5L).build()
+        );
+
+        Assertions.assertThat(jsonContent).hasJsonPath("$.name");
+        Assertions.assertThat(jsonContent).hasJsonPath("$.email");
+        Assertions.assertThat(jsonContent).extractingJsonPathValue("$.name").isNull();
+        Assertions.assertThat(jsonContent).extractingJsonPathValue("$.email").isNull();
     }
 }

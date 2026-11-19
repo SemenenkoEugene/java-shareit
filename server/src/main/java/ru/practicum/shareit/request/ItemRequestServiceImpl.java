@@ -5,11 +5,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.OffsetBasedPageRequest;
 import ru.practicum.shareit.exception.NotFoundException;
+import ru.practicum.shareit.generated.request.dto.CreateItemRequestRequest;
+import ru.practicum.shareit.generated.request.dto.ItemRequestCreateResponse;
+import ru.practicum.shareit.generated.request.dto.ItemRequestResponse;
+import ru.practicum.shareit.generated.request.dto.RequestedItemResponse;
 import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.request.dto.ItemRequestCreateDto;
-import ru.practicum.shareit.request.dto.ItemRequestCreateResponseDto;
-import ru.practicum.shareit.request.dto.ItemRequestGetResponseDto;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserRepository;
 
@@ -32,7 +33,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ItemRequestGetResponseDto> getAllByRequestorId(final Long userId, final int from, final int size) {
+    public List<ItemRequestResponse> getAllByRequestorId(final Long userId, final int from, final int size) {
 
         final List<ItemRequest> itemRequests = itemRequestRepository.findAllByRequestorIdOrderByCreatedDescIdDesc(
                 userId, new OffsetBasedPageRequest(from, size));
@@ -41,14 +42,14 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
         return itemRequests.stream()
                 .map(ItemRequestMapper::toGetResponseDto)
-                .map(itemRequestGetResponseDto ->
-                        addItemInfo(itemsRequestId.get(itemRequestGetResponseDto.getId()), itemRequestGetResponseDto))
+                .map(itemRequestResponse ->
+                        addItemInfo(itemsRequestId.get(itemRequestResponse.id()), itemRequestResponse))
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ItemRequestGetResponseDto> getAll(final Long userId, final int from, final int size) {
+    public List<ItemRequestResponse> getAll(final Long userId, final int from, final int size) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
         final List<ItemRequest> itemRequests = itemRequestRepository
@@ -63,24 +64,24 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
         return itemRequests.stream()
                 .map(ItemRequestMapper::toGetResponseDto)
-                .map(dto -> addItemInfo(itemsByRequestId.get(dto.getId()), dto))
+                .map(dto -> addItemInfo(itemsByRequestId.get(dto.id()), dto))
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ItemRequestGetResponseDto getById(final Long userId, final Long itemRequestId) {
+    public ItemRequestResponse getById(final Long userId, final Long itemRequestId) {
 
         final ItemRequest itemRequest = itemRequestRepository.findById(itemRequestId)
                 .orElseThrow(() -> new NotFoundException(REQUEST_NOT_FOUND));
-        ItemRequestGetResponseDto responseDto = ItemRequestMapper.toGetResponseDto(itemRequest);
+        ItemRequestResponse responseDto = ItemRequestMapper.toGetResponseDto(itemRequest);
         responseDto = addItemInfo(responseDto);
         return responseDto;
     }
 
     @Override
     @Transactional
-    public ItemRequestCreateResponseDto create(final ItemRequestCreateDto itemRequestCreateDto, final Long userId) {
+    public ItemRequestCreateResponse create(final CreateItemRequestRequest itemRequestCreateDto, final Long userId) {
         final User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
         final ItemRequest itemRequest = ItemRequestMapper.toItemRequest(itemRequestCreateDto);
@@ -90,22 +91,22 @@ public class ItemRequestServiceImpl implements ItemRequestService {
         return ItemRequestMapper.toCreateResponseDto(itemRequestRepository.save(itemRequest));
     }
 
-    private ItemRequestGetResponseDto addItemInfo(final List<Item> items, final ItemRequestGetResponseDto itemRequestGetResponseDto) {
+    private ItemRequestResponse addItemInfo(final List<Item> items, final ItemRequestResponse itemRequestResponse) {
 
-        return getItemRequestGetResponseDto(itemRequestGetResponseDto, items);
+        return getItemRequestResponse(itemRequestResponse, items);
     }
 
-    private ItemRequestGetResponseDto addItemInfo(final ItemRequestGetResponseDto itemRequestGetResponseDto) {
-        final List<Item> items = itemRepository.findAllByItemRequestId(itemRequestGetResponseDto.getId());
+    private ItemRequestResponse addItemInfo(final ItemRequestResponse itemRequestResponse) {
+        final List<Item> items = itemRepository.findAllByItemRequestId(itemRequestResponse.id());
 
-        return getItemRequestGetResponseDto(itemRequestGetResponseDto, items);
+        return getItemRequestResponse(itemRequestResponse, items);
     }
 
-    private ItemRequestGetResponseDto getItemRequestGetResponseDto(final ItemRequestGetResponseDto itemRequestGetResponseDto, final List<Item> items) {
-
-        itemRequestGetResponseDto.setItems(items == null || items.isEmpty() ? Collections.emptyList() :
-                items.stream()
-                        .map(item -> ItemRequestGetResponseDto.RequestedItem.builder()
+    private ItemRequestResponse getItemRequestResponse(final ItemRequestResponse itemRequestResponse,
+                                                       final List<Item> items) {
+        return itemRequestResponse.toBuilder()
+                .items(items == null || items.isEmpty() ? Collections.emptyList() : items.stream()
+                        .map(item -> RequestedItemResponse.builder()
                                 .id(item.getId())
                                 .name(item.getName())
                                 .description(item.getDescription())
@@ -113,7 +114,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
                                 .requestId(item.getItemRequest().getId())
                                 .build()
                         )
-                        .toList());
-        return itemRequestGetResponseDto;
+                        .toList())
+                .build();
     }
 }

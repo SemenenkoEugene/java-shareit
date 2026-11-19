@@ -10,7 +10,7 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.client.ResponseActions;
 import org.springframework.test.web.client.match.MockRestRequestMatchers;
 import org.springframework.web.client.RestTemplate;
-import ru.practicum.shareit.request.dto.ItemRequestCreateDto;
+import ru.practicum.shareit.generated.request.dto.CreateItemRequestRequest;
 
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
@@ -35,7 +35,7 @@ class ItemRequestClientTest {
 
     @Test
     void createShouldSendRequestAsJson() {
-        final ItemRequestCreateDto request = ItemRequestCreateDto.builder()
+        final CreateItemRequestRequest request = CreateItemRequestRequest.builder()
                 .description("Need a cordless drill")
                 .build();
         expectRequest("", HttpMethod.POST)

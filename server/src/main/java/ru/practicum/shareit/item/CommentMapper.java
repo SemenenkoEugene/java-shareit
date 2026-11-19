@@ -2,13 +2,14 @@ package ru.practicum.shareit.item;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import ru.practicum.shareit.item.dto.CommentDto;
+import ru.practicum.shareit.generated.item.dto.CommentResponse;
+import ru.practicum.shareit.generated.item.dto.CreateCommentRequest;
 import ru.practicum.shareit.item.model.Comment;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class CommentMapper {
-    public static CommentDto toCommentDto(final Comment comment) {
-        return CommentDto.builder()
+    public static CommentResponse toCommentResponse(final Comment comment) {
+        return CommentResponse.builder()
                 .id(comment.getId())
                 .text(comment.getText())
                 .authorName(comment.getAuthor().getName())
@@ -16,9 +17,9 @@ public class CommentMapper {
                 .build();
     }
 
-    public static Comment toComment(final CommentDto commentDto) {
+    public static Comment toComment(final CreateCommentRequest commentDto) {
         final Comment comment = new Comment();
-        comment.setText(commentDto.getText());
+        comment.setText(commentDto.text());
         return comment;
     }
 }

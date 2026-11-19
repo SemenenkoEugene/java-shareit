@@ -5,11 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.shareit.booking.dto.BookingRequestDto;
-import ru.practicum.shareit.booking.dto.BookingResponseDto;
 import ru.practicum.shareit.booking.dto.RequestBookingStatus;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
+import ru.practicum.shareit.generated.booking.dto.BookingResponse;
+import ru.practicum.shareit.generated.booking.dto.CreateBookingRequest;
 import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.User;
@@ -35,7 +35,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
-    public BookingResponseDto getById(final Long bookingId, final Long userId) {
+    public BookingResponse getById(final Long bookingId, final Long userId) {
         final Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new NotFoundException(BOOKING_NOT_FOUND));
         userRepository.findById(userId)
@@ -49,8 +49,8 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<BookingResponseDto> getAllByState(final RequestBookingStatus requestBookingStatus, final Long userId,
-                                                  final int from, final int size) {
+    public List<BookingResponse> getAllByState(final RequestBookingStatus requestBookingStatus, final Long userId,
+                                               final int from, final int size) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
         final Pageable pageable = new OffsetBasedPageRequest(from, size);
@@ -84,8 +84,8 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<BookingResponseDto> getAllByStateForOwner(final RequestBookingStatus requestBookingStatus, final Long userId,
-                                                          final int from, final int size) {
+    public List<BookingResponse> getAllByStateForOwner(final RequestBookingStatus requestBookingStatus, final Long userId,
+                                                       final int from, final int size) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
         final Pageable pageable = new OffsetBasedPageRequest(from, size);
@@ -120,10 +120,10 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
-    public BookingResponseDto create(final BookingRequestDto bookingRequestDto, final Long userId) {
+    public BookingResponse create(final CreateBookingRequest bookingRequestDto, final Long userId) {
         final User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
-        final Item item = itemRepository.findById(bookingRequestDto.getItemId())
+        final Item item = itemRepository.findById(bookingRequestDto.itemId())
                 .orElseThrow(() -> new NotFoundException(ITEM_NOT_FOUND));
 
         if (!item.getAvailable()) {
@@ -134,15 +134,15 @@ public class BookingServiceImpl implements BookingService {
             throw new NotFoundException("Владелец не может бронировать свою вещь");
         }
 
-        if (bookingRequestDto.getStart() == null || bookingRequestDto.getEnd() == null) {
+        if (bookingRequestDto.start() == null || bookingRequestDto.end() == null) {
             throw new ValidationException("Дата начала и окончания бронирования должны быть указаны");
         }
 
-        if (!bookingRequestDto.getStart().isAfter(LocalDateTime.now())) {
+        if (!bookingRequestDto.start().isAfter(LocalDateTime.now())) {
             throw new ValidationException("Дата начала бронирования должна быть позже текущего времени");
         }
 
-        if (!bookingRequestDto.getEnd().isAfter(bookingRequestDto.getStart())) {
+        if (!bookingRequestDto.end().isAfter(bookingRequestDto.start())) {
             throw new ValidationException("Дата окончания бронирования должна быть позже даты начала");
         }
 
@@ -156,7 +156,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
-    public BookingResponseDto approve(final Long bookingId, final boolean approved, final Long userId) {
+    public BookingResponse approve(final Long bookingId, final boolean approved, final Long userId) {
         final Booking booking = bookingRepository.findByIdForUpdate(bookingId)
                 .orElseThrow(() -> new NotFoundException(BOOKING_NOT_FOUND));
         userRepository.findById(userId)

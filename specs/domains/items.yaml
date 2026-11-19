@@ -1,0 +1,254 @@
+domain: items
+
+contracts:
+  request_dtos:
+    create_item:
+      name: CreateItemRequest
+      module: api-contract
+      package: ru.practicum.shareit.generated.item.dto
+      implementation: openapi_generated
+      specification: specs/openapi/items.yaml
+      fields: [id, name, description, available, nextBooking, lastBooking, comments, requestId]
+    update_item:
+      name: UpdateItemRequest
+      module: api-contract
+      package: ru.practicum.shareit.generated.item.dto
+      implementation: openapi_generated
+      specification: specs/openapi/items.yaml
+      fields: [id, name, description, available, nextBooking, lastBooking, comments, requestId]
+    create_comment:
+      name: CreateCommentRequest
+      module: api-contract
+      package: ru.practicum.shareit.generated.item.dto
+      implementation: openapi_generated
+      specification: specs/openapi/items.yaml
+      fields: [id, text, authorName, created]
+  response_dtos:
+    item:
+      name: ItemResponse
+      module: api-contract
+      package: ru.practicum.shareit.generated.item.dto
+      implementation: openapi_generated
+      specification: specs/openapi/items.yaml
+      fields: [id, name, description, available, nextBooking, lastBooking, comments, requestId]
+    comment:
+      name: CommentResponse
+      module: api-contract
+      package: ru.practicum.shareit.generated.item.dto
+      implementation: openapi_generated
+      specification: specs/openapi/items.yaml
+      fields: [id, text, authorName, created]
+  entities:
+    item:
+      name: Item
+      table: items
+      fields:
+        id: { column: item_id, generated: IDENTITY, database_nullable: false }
+        name: { column: item_name, database_nullable: false }
+        description: { column: description, database_nullable: false }
+        available: { column: available, database_nullable: false }
+        owner: { column: owner_id, relation: "ManyToOne User", database_nullable: false }
+        item_request: { column: request_id, relation: "ManyToOne ItemRequest", database_nullable: true }
+    comment:
+      name: Comment
+      table: comments
+      fields:
+        id: { column: comment_id, generated: IDENTITY, database_nullable: false }
+        text: { column: comment_text, database_nullable: false }
+        item: { column: item_id, relation: "ManyToOne Item", database_nullable: false }
+        author: { column: author_id, relation: "ManyToOne User", database_nullable: false }
+        created: { column: created_date, database_nullable: false }
+
+endpoints:
+  - id: ITEM-API-001
+    operation: create_item
+    method: POST
+    path: /items
+    parameters:
+      - { name: X-Sharer-User-Id, in: header, type: Long, required: true }
+    request: CreateItemRequest
+    response: ItemResponse
+    success_http_status: 200
+  - id: ITEM-API-002
+    operation: create_comment
+    method: POST
+    path: /items/{itemId}/comment
+    parameters:
+      - { name: X-Sharer-User-Id, in: header, type: Long, required: true }
+      - { name: itemId, in: path, type: Long, required: true }
+    request: CreateCommentRequest
+    response: CommentResponse
+    success_http_status: 200
+  - id: ITEM-API-003
+    operation: update_item
+    method: PATCH
+    path: /items/{itemId}
+    parameters:
+      - { name: X-Sharer-User-Id, in: header, type: Long, required: true }
+      - { name: itemId, in: path, type: Long, required: true }
+    request: UpdateItemRequest
+    response: ItemResponse
+    success_http_status: 200
+  - id: ITEM-API-004
+    operation: delete_item
+    method: DELETE
+    path: /items/{itemId}
+    parameters:
+      - { name: itemId, in: path, type: Long, required: true }
+    request: null
+    response: null
+    success_http_status: 200
+  - id: ITEM-API-005
+    operation: get_item_by_id
+    method: GET
+    path: /items/{itemId}
+    parameters:
+      - { name: X-Sharer-User-Id, in: header, type: Long, required: true }
+      - { name: itemId, in: path, type: Long, required: true }
+    request: null
+    response: ItemResponse
+    success_http_status: 200
+  - id: ITEM-API-006
+    operation: get_owner_items
+    method: GET
+    path: /items
+    parameters:
+      - { name: X-Sharer-User-Id, in: header, type: Long, required: true }
+      - { name: from, in: query, type: int, required: false, default: 0, minimum: 0 }
+      - { name: size, in: query, type: int, required: false, default: 20, minimum: 1 }
+    request: null
+    response: "List<ItemResponse>"
+    success_http_status: 200
+  - id: ITEM-API-007
+    operation: search_items
+    method: GET
+    path: /items/search
+    parameters:
+      - { name: X-Sharer-User-Id, in: header, type: Long, required: true }
+      - { name: text, in: query, type: String, required: true }
+      - { name: from, in: query, type: int, required: false, default: 0, minimum: 0 }
+      - { name: size, in: query, type: int, required: false, default: 20, minimum: 1 }
+    request: null
+    response: "List<ItemResponse>"
+    success_http_status: 200
+
+operations:
+  create_item:
+    service: ItemServiceImpl.create
+    persistence: "Loads owner and optional ItemRequest, maps CreateItemRequest to Item and saved entity to ItemResponse"
+    transaction: read_write
+  create_comment:
+    service: ItemServiceImpl.createComment
+    persistence: "Loads author and item, verifies booking, sets created, then CommentRepository.save"
+    transaction: read_write
+  update_item:
+    service: ItemServiceImpl.update
+    persistence: "Loads Item, checks owner, applies non-null fields, then ItemRepository.save"
+    null_fields_behavior: "Null name, description, and available values leave stored fields unchanged."
+    transaction: read_write
+  delete_item:
+    service: ItemServiceImpl.delete
+    persistence: ItemRepository.deleteById
+    authorization: none
+    missing_id_behavior: "No-op; the endpoint completes with HTTP 200."
+    transaction: read_write
+  get_item_by_id:
+    service: ItemServiceImpl.getItemById
+    transaction: read_only
+  get_owner_items:
+    service: ItemServiceImpl.getItemsByOwnerId
+    transaction: read_only
+  search_items:
+    service: ItemServiceImpl.getItemsBySearchQuery
+    transaction: read_only
+
+business_rules:
+  - id: ITEM-001
+    rule: "Creating an item requires an existing user; that user becomes the owner."
+  - id: ITEM-002
+    rule: "When requestId is non-null during creation, the referenced ItemRequest must exist."
+    limitation: "No check links the request to the owner or another specific user."
+  - id: ITEM-003
+    rule: "Only the stored owner may update an item."
+  - id: ITEM-004
+    rule: "PATCH updates name, description, and available independently when each value is non-null."
+  - id: ITEM-005
+    rule: "Creation requires non-blank name and description and non-null available at gateway validation."
+  - id: ITEM-006
+    rule: "Search matches text case-insensitively as a substring of name or description and returns only available=true items ordered by item id ascending."
+  - id: ITEM-007
+    rule: "Blank search text returns an empty list without querying ItemRepository.findBySearchText."
+  - id: ITEM-008
+    rule: "from is an absolute result offset and size is the maximum page size through OffsetBasedPageRequest."
+  - id: ITEM-009
+    rule: "Owner item listing returns items ordered by id and includes comments plus nearest future and latest completed APPROVED bookings."
+  - id: ITEM-010
+    rule: "Get by id includes comments for every requester, but booking summaries only when X-Sharer-User-Id equals the owner id."
+  - id: ITEM-011
+    rule: "A comment requires an existing user, an existing item, and at least one APPROVED booking for that user and item with end strictly before the current time."
+  - id: ITEM-012
+    rule: "CommentMapper maps only text from the request; id is generated, author and item are assigned by the service, and created is set to the current time. Client-supplied id, authorName, and created are ignored."
+  - id: ITEM-013
+    rule: "DELETE has no owner header or authorization check, so any caller able to reach the endpoint can request deletion."
+  - id: ITEM-014
+    rule: "Owner listing does not verify that the header user exists; no matching items produce an empty list."
+  - id: ITEM-015
+    rule: "Search requires the user header at gateway but does not verify that the user exists; server search does not consume the header."
+
+validation:
+  gateway:
+    create_item:
+      trigger: "@Valid"
+      failure_http_status: 400
+      constraints:
+        name: [NotNull, "Pattern: contains a non-whitespace character"]
+        description: [NotNull, "Pattern: contains a non-whitespace character"]
+        available: [NotNull]
+    update_item:
+      trigger: "@Valid"
+      failure_http_status: 400
+      constraints:
+        name: ["Pattern: contains a non-whitespace character when non-null"]
+        description: ["Pattern: contains a non-whitespace character when non-null"]
+        available: ["No constraint; null is accepted"]
+    create_comment:
+      trigger: "@Valid"
+      failure_http_status: 400
+      constraints:
+        text: [NotNull, "Pattern: contains a non-whitespace character"]
+    pagination:
+      constraints:
+        from: "Min(0)"
+        size: "Min(1)"
+      failure_http_status: 400
+  server:
+    generated_record_constraints: "Присутствуют в shared records из api-contract"
+    controller_body_validation: "Не активирована: @RequestBody не аннотированы @Valid"
+    business_validation: [ITEM-001, ITEM-002, ITEM-003, ITEM-011]
+
+errors:
+  - condition: "Required user, item, or request entity is absent during create, comment, update, or get by id"
+    exception: NotFoundException
+    http_status: 404
+  - condition: "Requester is not the stored item owner during PATCH"
+    exception: ItemForbiddenException
+    http_status: 403
+  - condition: "No qualifying completed APPROVED booking exists when creating a comment"
+    exception: ValidationException
+    http_status: 400
+  - condition: "DataIntegrityViolationException thrown by ItemRepository.save during update"
+    exception: ItemAlreadyExistsException
+    http_status: 409
+    limitation: "The exception name implies duplication, but the items schema has no UNIQUE business field."
+  - condition: "Gateway request-body Jakarta Validation failure"
+    exception: MethodArgumentNotValidException
+    http_status: 400
+  - condition: "IllegalArgumentException or ConstraintViolationException handled by gateway ErrorHandler"
+    http_status: 400
+  - condition: "Missing required header or query parameter, or invalid gateway pagination constraint"
+    http_status: 400
+
+unknown:
+  - "HTTP status is unknown if a database integrity failure occurs outside the update save call's try/catch, including transaction completion."
+  - "HTTP status is unknown if deletion of an existing item violates booking or comment foreign keys; schema.sql defines no cascading delete."
+  - "Direct calls to server with invalid from or size can throw IllegalArgumentException from OffsetBasedPageRequest; no matching server exception handler was confirmed."

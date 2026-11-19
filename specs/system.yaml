@@ -1,0 +1,73 @@
+application:
+  name: ShareIt
+  purpose: "Приложение для обмена вещами между пользователями"
+
+modules:
+  api-contract:
+    role: "Общий Java-модуль generated HTTP DTO для gateway и server"
+    publishes: "17 Java records и 2 enum, сгенерированные из specs/openapi/*.yaml"
+    runtime_application: false
+    generation:
+      tasks: [generateUserDto, generateItemDto, generateBookingDto, generateRequestDto, generateAllDto]
+      task_location: "api-contract/build.gradle"
+      generated_sources: "api-contract/build/generated/openapi-*/src/main/java"
+      compilation: "Generated directories подключены к api-contract sourceSets.main; compileJava зависит от generateAllDto"
+      templates: "openapi-templates/spring"
+      model_shape: "Java records с Lombok @Builder(toBuilder = true) и @Jacksonized"
+      fqn_policy: "Полностью квалифицированные имена в generated-коде оставлены намеренно"
+  gateway:
+    role: "Внешний HTTP-вход и проксирование запросов"
+    port: 8080
+    gradle_dependencies:
+      - "implementation project(':api-contract')"
+    communicates_with:
+      module: server
+      url: "http://localhost:9090"
+      protocol: HTTP
+      client: RestTemplate
+  server:
+    role: "REST API, бизнес-логика и доступ к данным"
+    port: 9090
+    gradle_dependencies:
+      - "implementation project(':api-contract')"
+
+module_dependencies:
+  compile_time:
+    - "gateway -> api-contract"
+    - "server -> api-contract"
+  runtime:
+    - "gateway -> server по HTTP"
+  absent:
+    - "gateway и server не имеют прямой Gradle project dependency друг на друга"
+
+technology:
+  java: 21
+  framework: "Spring Boot 3.5.6"
+  build_tool: "Gradle Wrapper 8.14.6"
+  web: "Spring MVC"
+  persistence:
+    orm: "Spring Data JPA / Hibernate"
+    database: PostgreSQL
+  transactions: "Spring @Transactional в сервисном слое server"
+
+functional_areas:
+  - users
+  - items
+  - bookings
+  - requests
+
+http_contract:
+  user_id_header: X-Sharer-User-Id
+  forwarding: "gateway передаёт заголовок в server при наличии идентификатора пользователя"
+  dto_source: "specs/openapi/*.yaml"
+  dto_owner: api-contract
+  consumers: [gateway, server]
+  handwritten_http_dtos: "Удалены для доменов users, items, bookings и requests"
+
+root_tasks:
+  generateAllDto: "Forwarding task корневого build.gradle; зависит от :api-contract:generateAllDto"
+
+validation:
+  gateway: "Jakarta Validation generated request records активируется в HTTP-контроллерах через @Valid; параметры контроллеров валидируются там, где настроен method validation"
+  server: "Generated records содержат Jakarta-аннотации, но server-контроллеры не используют @Valid для @RequestBody; HTTP-валидация из одних аннотаций автоматически не активна, бизнес-валидация остаётся в сервисах"
+

@@ -1,23 +1,26 @@
 package ru.practicum.shareit.item;
 
-import ru.practicum.shareit.item.dto.CommentDto;
-import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.generated.item.dto.CommentResponse;
+import ru.practicum.shareit.generated.item.dto.CreateCommentRequest;
+import ru.practicum.shareit.generated.item.dto.CreateItemRequest;
+import ru.practicum.shareit.generated.item.dto.ItemResponse;
+import ru.practicum.shareit.generated.item.dto.UpdateItemRequest;
 
 import java.util.List;
 
 public interface ItemService {
 
-    ItemDto create(ItemDto itemDto, Long userId);
+    ItemResponse create(CreateItemRequest itemDto, Long userId);
 
-    CommentDto createComment(CommentDto commentDto, Long userId, Long itemId);
+    CommentResponse createComment(CreateCommentRequest commentDto, Long userId, Long itemId);
 
-    ItemDto getItemById(Long userId, Long itemId);
+    ItemResponse getItemById(Long userId, Long itemId);
 
-    List<ItemDto> getItemsByOwnerId(Long userId, int from, int size);
+    List<ItemResponse> getItemsByOwnerId(Long userId, int from, int size);
 
-    List<ItemDto> getItemsBySearchQuery(String searchText, int from, int size);
+    List<ItemResponse> getItemsBySearchQuery(String searchText, int from, int size);
 
-    ItemDto update(ItemDto itemDto, Long itemId, Long userId);
+    ItemResponse update(UpdateItemRequest itemDto, Long itemId, Long userId);
 
     void delete(Long itemId);
 

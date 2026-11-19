@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
-import ru.practicum.shareit.request.dto.ItemRequestGetResponseDto;
+import ru.practicum.shareit.generated.request.dto.ItemRequestResponse;
 import ru.practicum.shareit.user.User;
 
 import java.time.LocalDateTime;
@@ -33,10 +33,10 @@ class ItemRequestServiceQueryTest {
         final User requestor = persistUser("requestor@test.ru");
         final List<ItemRequest> requests = persistRequests(requestor);
 
-        final List<ItemRequestGetResponseDto> result =
+        final List<ItemRequestResponse> result =
                 itemRequestService.getAllByRequestorId(requestor.getId(), from, size);
 
-        Assertions.assertThat(result).extracting(ItemRequestGetResponseDto::getId)
+        Assertions.assertThat(result).extracting(ItemRequestResponse::id)
                 .containsExactlyElementsOf(idsAtIndexes(requests, expectedIndexes));
     }
 
@@ -49,9 +49,9 @@ class ItemRequestServiceQueryTest {
         persistRequest(requester, "Own request", LocalDateTime.of(2040, 1, 1, 12, 0));
         final List<ItemRequest> requests = persistRequests(requestor);
 
-        final List<ItemRequestGetResponseDto> result = itemRequestService.getAll(requester.getId(), from, size);
+        final List<ItemRequestResponse> result = itemRequestService.getAll(requester.getId(), from, size);
 
-        Assertions.assertThat(result).extracting(ItemRequestGetResponseDto::getId)
+        Assertions.assertThat(result).extracting(ItemRequestResponse::id)
                 .containsExactlyElementsOf(idsAtIndexes(requests, expectedIndexes));
     }
 

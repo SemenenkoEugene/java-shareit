@@ -10,7 +10,8 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.client.ResponseActions;
 import org.springframework.test.web.client.match.MockRestRequestMatchers;
 import org.springframework.web.client.RestTemplate;
-import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.generated.user.dto.CreateUserRequest;
+import ru.practicum.shareit.generated.user.dto.UpdateUserRequest;
 
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
@@ -35,7 +36,7 @@ class UserClientTest {
 
     @Test
     void createShouldSendUserAsJsonWithoutUserHeader() {
-        final UserDto user = UserDto.builder()
+        final CreateUserRequest user = CreateUserRequest.builder()
                 .name("Anna")
                 .email("anna@example.com")
                 .build();
@@ -53,7 +54,7 @@ class UserClientTest {
 
     @Test
     void updateShouldPreserveDtoValuesAndSendUserHeader() {
-        final UserDto user = UserDto.builder()
+        final UpdateUserRequest user = UpdateUserRequest.builder()
                 .name("Updated name")
                 .email("updated@example.com")
                 .build();

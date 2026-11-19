@@ -3,6 +3,7 @@ package ru.practicum.shareit.item;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -15,8 +16,12 @@ import ru.practicum.shareit.booking.Status;
 import ru.practicum.shareit.exception.ItemAlreadyExistsException;
 import ru.practicum.shareit.exception.ItemForbiddenException;
 import ru.practicum.shareit.exception.ValidationException;
-import ru.practicum.shareit.item.dto.CommentDto;
-import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.generated.item.dto.CommentResponse;
+import ru.practicum.shareit.generated.item.dto.CreateCommentRequest;
+import ru.practicum.shareit.generated.item.dto.CreateItemRequest;
+import ru.practicum.shareit.generated.item.dto.ItemBookingResponse;
+import ru.practicum.shareit.generated.item.dto.ItemResponse;
+import ru.practicum.shareit.generated.item.dto.UpdateItemRequest;
 import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.request.ItemRequest;
@@ -52,8 +57,8 @@ class ItemServiceTest {
             .text("Comment text")
             .build();
 
-    private static final CommentDto COMMENT_DTO = CommentDto.builder().build();
-    private static final ItemDto ITEM_DTO = ItemDto.builder().id(3L).build();
+    private static final CreateCommentRequest COMMENT_DTO = CreateCommentRequest.builder().build();
+    private static final UpdateItemRequest ITEM_DTO = UpdateItemRequest.builder().id(3L).build();
 
     @Mock
     private ItemRepository itemRepository;
@@ -81,7 +86,7 @@ class ItemServiceTest {
                 .itemRequest(ITEM_REQUEST)
                 .build();
 
-        final ItemDto createDto = ItemDto.builder()
+        final CreateItemRequest createDto = CreateItemRequest.builder()
                 .requestId(ITEM_REQUEST.getId())
                 .build();
 
@@ -89,11 +94,12 @@ class ItemServiceTest {
         Mockito.when(itemRequestRepository.findById(Mockito.anyLong())).thenReturn(Optional.of(ITEM_REQUEST));
         Mockito.when(itemRepository.save(Mockito.any())).thenReturn(item);
 
-        final ItemDto resultDto = itemService.create(createDto, USER.getId());
+        final ItemResponse resultDto = itemService.create(createDto, USER.getId());
 
         Assertions.assertThat(resultDto)
                 .isNotNull()
-                .extracting(ItemDto::getId, ItemDto::getName, ItemDto::getDescription, ItemDto::getAvailable, ItemDto::getRequestId)
+                .extracting(ItemResponse::id, ItemResponse::name, ItemResponse::description,
+                        ItemResponse::available, ItemResponse::requestId)
                 .containsExactly(item.getId(), item.getName(), item.getDescription(), item.getAvailable(), ITEM_REQUEST.getId());
 
         Mockito.verify(userRepository).findById(USER.getId());
@@ -104,9 +110,15 @@ class ItemServiceTest {
 
     @Test
     void createComment_Ok() {
+        final LocalDateTime now = LocalDateTime.of(2030, 1, 1, 12, 0);
+        final CreateCommentRequest request = CreateCommentRequest.builder()
+                .text(COMMENT.getText())
+                .created("2000-01-01T00:00:00")
+                .build();
         final Comment comment = COMMENT.toBuilder()
                 .item(ITEM)
                 .author(USER)
+                .created(now)
                 .build();
 
         Mockito.when(userRepository.findById(Mockito.anyLong())).thenReturn(Optional.of(USER));
@@ -115,18 +127,25 @@ class ItemServiceTest {
                 .thenReturn(List.of(new Booking()));
         Mockito.when(commentRepository.save(Mockito.any())).thenReturn(comment);
 
-        final CommentDto resultDto = itemService.createComment(COMMENT_DTO, USER.getId(), ITEM.getId());
+        final CommentResponse resultDto;
+        try (MockedStatic<LocalDateTime> localDateTime = Mockito.mockStatic(LocalDateTime.class,
+                Mockito.CALLS_REAL_METHODS)) {
+            localDateTime.when(LocalDateTime::now).thenReturn(now);
+            resultDto = itemService.createComment(request, USER.getId(), ITEM.getId());
+        }
 
         Assertions.assertThat(resultDto)
                 .isNotNull()
-                .extracting(CommentDto::getId, CommentDto::getText, CommentDto::getAuthorName)
+                .extracting(CommentResponse::id, CommentResponse::text, CommentResponse::authorName)
                 .containsExactly(comment.getId(), comment.getText(), USER.getName());
 
         Mockito.verify(userRepository).findById(USER.getId());
         Mockito.verify(itemRepository).findById(ITEM.getId());
         Mockito.verify(bookingRepository).findByItemIdAndUserIdAndExpiredEndDateAndApprovedStatus(
-                Mockito.eq(ITEM.getId()), Mockito.eq(USER.getId()), Mockito.any(LocalDateTime.class));
-        Mockito.verify(commentRepository).save(Mockito.any(Comment.class));
+                Mockito.eq(ITEM.getId()), Mockito.eq(USER.getId()), Mockito.eq(now));
+        final ArgumentCaptor<Comment> commentCaptor = ArgumentCaptor.forClass(Comment.class);
+        Mockito.verify(commentRepository).save(commentCaptor.capture());
+        Assertions.assertThat(commentCaptor.getValue().getCreated()).isEqualTo(now);
         Mockito.verifyNoMoreInteractions(itemRepository, userRepository, bookingRepository, commentRepository, itemRequestRepository);
     }
 
@@ -177,6 +196,41 @@ class ItemServiceTest {
     }
 
     @Test
+    void updateShouldIgnoreMissingAndExplicitNullFields() {
+        final Item item = ITEM.toBuilder().owner(USER).build();
+        Mockito.when(itemRepository.findById(item.getId())).thenReturn(Optional.of(item));
+        Mockito.when(itemRepository.save(item)).thenReturn(item);
+
+        final ItemResponse emptyPatchResult = itemService.update(UpdateItemRequest.builder().build(),
+                item.getId(), USER.getId());
+        final ItemResponse nullPatchResult = itemService.update(UpdateItemRequest.builder()
+                .name(null)
+                .description(null)
+                .available(null)
+                .build(), item.getId(), USER.getId());
+
+        Assertions.assertThat(List.of(emptyPatchResult, nullPatchResult))
+                .allSatisfy(result -> Assertions.assertThat(result)
+                        .extracting(ItemResponse::name, ItemResponse::description, ItemResponse::available)
+                        .containsExactly(ITEM.getName(), ITEM.getDescription(), ITEM.getAvailable()));
+    }
+
+    @Test
+    void updateShouldApplyOnlyPresentFields() {
+        final Item item = ITEM.toBuilder().owner(USER).build();
+        Mockito.when(itemRepository.findById(item.getId())).thenReturn(Optional.of(item));
+        Mockito.when(itemRepository.save(item)).thenReturn(item);
+
+        final ItemResponse result = itemService.update(UpdateItemRequest.builder()
+                .name("Updated item")
+                .build(), item.getId(), USER.getId());
+
+        Assertions.assertThat(result)
+                .extracting(ItemResponse::name, ItemResponse::description, ItemResponse::available)
+                .containsExactly("Updated item", ITEM.getDescription(), ITEM.getAvailable());
+    }
+
+    @Test
     void getItemByIdShouldUseOnlyApprovedBookingForLastBooking() {
         final LocalDateTime now = LocalDateTime.now();
         final Item item = ITEM.toBuilder().owner(USER).build();
@@ -188,11 +242,11 @@ class ItemServiceTest {
         Mockito.when(bookingRepository.findAllByItemId(item.getId()))
                 .thenReturn(List.of(approved, waiting, rejected));
 
-        final ItemDto result = itemService.getItemById(USER.getId(), item.getId());
+        final ItemResponse result = itemService.getItemById(USER.getId(), item.getId());
 
-        Assertions.assertThat(result.getLastBooking())
+        Assertions.assertThat(result.lastBooking())
                 .isNotNull()
-                .extracting(ItemDto.ItemBooking::getId, ItemDto.ItemBooking::getBookerId)
+                .extracting(ItemBookingResponse::id, ItemBookingResponse::bookerId)
                 .containsExactly(approved.getId(), USER.getId());
     }
 
@@ -207,9 +261,9 @@ class ItemServiceTest {
         Mockito.when(bookingRepository.findAllByItemId(item.getId()))
                 .thenReturn(List.of(waiting, rejected));
 
-        final ItemDto result = itemService.getItemById(USER.getId(), item.getId());
+        final ItemResponse result = itemService.getItemById(USER.getId(), item.getId());
 
-        Assertions.assertThat(result.getLastBooking()).isNull();
+        Assertions.assertThat(result.lastBooking()).isNull();
     }
 
     @Test
@@ -227,16 +281,16 @@ class ItemServiceTest {
         Mockito.when(bookingRepository.findAllByItemId(item.getId()))
                 .thenReturn(List.of(completed, active, future, waiting, rejected, endingNow));
 
-        final ItemDto result;
+        final ItemResponse result;
         try (MockedStatic<LocalDateTime> localDateTime = Mockito.mockStatic(LocalDateTime.class,
                 Mockito.CALLS_REAL_METHODS)) {
             localDateTime.when(LocalDateTime::now).thenReturn(now);
             result = itemService.getItemById(USER.getId(), item.getId());
         }
 
-        Assertions.assertThat(result.getLastBooking())
+        Assertions.assertThat(result.lastBooking())
                 .isNotNull()
-                .extracting(ItemDto.ItemBooking::getId, ItemDto.ItemBooking::getBookerId)
+                .extracting(ItemBookingResponse::id, ItemBookingResponse::bookerId)
                 .containsExactly(endingNow.getId(), USER.getId());
     }
 
@@ -260,20 +314,20 @@ class ItemServiceTest {
         Mockito.when(commentRepository.findAllByItemIdIn(Mockito.anyCollection()))
                 .thenReturn(List.of(firstComment));
 
-        final List<ItemDto> result = itemService.getItemsByOwnerId(USER.getId(), 0, 10);
+        final List<ItemResponse> result = itemService.getItemsByOwnerId(USER.getId(), 0, 10);
 
-        Assertions.assertThat(result).extracting(ItemDto::getId)
+        Assertions.assertThat(result).extracting(ItemResponse::id)
                 .containsExactly(firstItem.getId(), secondItem.getId(), thirdItem.getId());
-        Assertions.assertThat(result.get(0).getLastBooking().getId()).isEqualTo(firstLast.getId());
-        Assertions.assertThat(result.get(0).getNextBooking().getId()).isEqualTo(firstNext.getId());
-        Assertions.assertThat(result.get(0).getComments()).extracting(CommentDto::getId)
+        Assertions.assertThat(result.get(0).lastBooking().id()).isEqualTo(firstLast.getId());
+        Assertions.assertThat(result.get(0).nextBooking().id()).isEqualTo(firstNext.getId());
+        Assertions.assertThat(result.get(0).comments()).extracting(CommentResponse::id)
                 .containsExactly(firstComment.getId());
-        Assertions.assertThat(result.get(1).getLastBooking().getId()).isEqualTo(secondLast.getId());
-        Assertions.assertThat(result.get(1).getNextBooking()).isNull();
-        Assertions.assertThat(result.get(1).getComments()).isEmpty();
-        Assertions.assertThat(result.get(2).getLastBooking()).isNull();
-        Assertions.assertThat(result.get(2).getNextBooking()).isNull();
-        Assertions.assertThat(result.get(2).getComments()).isEmpty();
+        Assertions.assertThat(result.get(1).lastBooking().id()).isEqualTo(secondLast.getId());
+        Assertions.assertThat(result.get(1).nextBooking()).isNull();
+        Assertions.assertThat(result.get(1).comments()).isEmpty();
+        Assertions.assertThat(result.get(2).lastBooking()).isNull();
+        Assertions.assertThat(result.get(2).nextBooking()).isNull();
+        Assertions.assertThat(result.get(2).comments()).isEmpty();
 
         Mockito.verify(bookingRepository).findAllByItemIdIn(Mockito.argThat(itemIds ->
                 itemIds.containsAll(List.of(firstItem.getId(), secondItem.getId(), thirdItem.getId()))));
@@ -300,7 +354,7 @@ class ItemServiceTest {
                 .thenReturn(List.of(completed, active, future, waiting, rejected, endingNow));
         Mockito.when(commentRepository.findAllByItemIdIn(Mockito.anyCollection())).thenReturn(List.of());
 
-        final List<ItemDto> result;
+        final List<ItemResponse> result;
         try (MockedStatic<LocalDateTime> localDateTime = Mockito.mockStatic(LocalDateTime.class,
                 Mockito.CALLS_REAL_METHODS)) {
             localDateTime.when(LocalDateTime::now).thenReturn(now);
@@ -308,8 +362,8 @@ class ItemServiceTest {
         }
 
         Assertions.assertThat(result).singleElement()
-                .extracting(ItemDto::getLastBooking)
-                .extracting(ItemDto.ItemBooking::getId, ItemDto.ItemBooking::getBookerId)
+                .extracting(ItemResponse::lastBooking)
+                .extracting(ItemBookingResponse::id, ItemBookingResponse::bookerId)
                 .containsExactly(endingNow.getId(), USER.getId());
     }
 

@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import ru.practicum.shareit.booking.dto.BookingRequestDto;
 import ru.practicum.shareit.booking.dto.RequestBookingStatus;
+import ru.practicum.shareit.generated.booking.dto.CreateBookingRequest;
 
 
 @RestController
@@ -30,7 +30,7 @@ public class BookingController {
 
     @PostMapping
     public ResponseEntity<Object> create(@RequestHeader(X_SHARER_USER_ID) final Long userId,
-                                         @Valid @RequestBody final BookingRequestDto bookingRequestDto) {
+                                         @Valid @RequestBody final CreateBookingRequest bookingRequestDto) {
         log.info("Получен POST-запрос к эндпоинту: '/bookings' " +
                  "на создание бронирования от пользователя с ID={}", userId);
         return bookingClient.create(userId, bookingRequestDto);

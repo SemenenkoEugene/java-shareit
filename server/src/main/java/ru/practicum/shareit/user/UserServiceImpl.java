@@ -6,7 +6,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.UserAlreadyExistsException;
-import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.generated.user.dto.CreateUserRequest;
+import ru.practicum.shareit.generated.user.dto.UpdateUserRequest;
+import ru.practicum.shareit.generated.user.dto.UserResponse;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,10 +26,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserDto create(final UserDto userDto) {
+    public UserResponse create(final CreateUserRequest userDto) {
         final User user = UserMapper.toUser(userDto);
         try {
-            return UserMapper.toUserDto(userRepository.save(user));
+            return UserMapper.toUserResponse(userRepository.save(user));
         } catch (DataIntegrityViolationException e) {
             throw new UserAlreadyExistsException(USER_ALREADY_EXISTS, e);
         }
@@ -35,15 +37,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserDto update(final UserDto userDto, final Long id) {
+    public UserResponse update(final UpdateUserRequest userDto, final Long id) {
         final User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
 
-        Optional.ofNullable(userDto.getName()).ifPresent(user::setName);
-        Optional.ofNullable(userDto.getEmail()).ifPresent(user::setEmail);
+        Optional.ofNullable(userDto.name()).ifPresent(user::setName);
+        Optional.ofNullable(userDto.email()).ifPresent(user::setEmail);
 
         try {
-            return UserMapper.toUserDto(userRepository.save(user));
+            return UserMapper.toUserResponse(userRepository.save(user));
         } catch (DataIntegrityViolationException e) {
             throw new UserAlreadyExistsException(USER_ALREADY_EXISTS, e);
         }
@@ -57,17 +59,17 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserDto getUserById(final Long id) {
+    public UserResponse getUserById(final Long id) {
         final User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
-        return UserMapper.toUserDto(user);
+        return UserMapper.toUserResponse(user);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<UserDto> getUsers() {
+    public List<UserResponse> getUsers() {
         return userRepository.findAll().stream()
-                .map(UserMapper::toUserDto)
+                .map(UserMapper::toUserResponse)
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 }

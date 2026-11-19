@@ -10,8 +10,9 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.client.ResponseActions;
 import org.springframework.test.web.client.match.MockRestRequestMatchers;
 import org.springframework.web.client.RestTemplate;
-import ru.practicum.shareit.item.dto.CommentDto;
-import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.generated.item.dto.CreateCommentRequest;
+import ru.practicum.shareit.generated.item.dto.CreateItemRequest;
+import ru.practicum.shareit.generated.item.dto.UpdateItemRequest;
 
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
@@ -35,7 +36,7 @@ class ItemClientTest {
 
     @Test
     void createShouldSendItemAsJson() {
-        final ItemDto item = ItemDto.builder()
+        final CreateItemRequest item = CreateItemRequest.builder()
                 .name("Drill")
                 .description("Cordless drill")
                 .available(true)
@@ -53,7 +54,7 @@ class ItemClientTest {
 
     @Test
     void updateShouldSendItemIdAndJsonBody() {
-        final ItemDto item = ItemDto.builder().name("Updated drill").build();
+        final UpdateItemRequest item = UpdateItemRequest.builder().name("Updated drill").build();
         expectUserRequest("/7", HttpMethod.PATCH)
                 .andExpect(content().json("{\"name\":\"Updated drill\"}"))
                 .andRespond(withSuccess());
@@ -93,7 +94,7 @@ class ItemClientTest {
 
     @Test
     void createCommentShouldSendItemIdAndJsonBody() {
-        final CommentDto comment = CommentDto.builder().text("Works well").build();
+        final CreateCommentRequest comment = CreateCommentRequest.builder().text("Works well").build();
         expectUserRequest("/7/comment", HttpMethod.POST)
                 .andExpect(content().json("{\"text\":\"Works well\"}"))
                 .andRespond(withSuccess());

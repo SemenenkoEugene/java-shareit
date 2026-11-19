@@ -12,8 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import ru.practicum.shareit.booking.dto.BookingRequestDto;
 import ru.practicum.shareit.booking.dto.RequestBookingStatus;
+import ru.practicum.shareit.generated.booking.dto.CreateBookingRequest;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -36,7 +36,7 @@ class BookingControllerTest {
 
     @Test
     void createShouldForwardValidRequestAndReturnClientResponse() throws Exception {
-        Mockito.when(bookingClient.create(Mockito.eq(USER_ID), Mockito.any(BookingRequestDto.class)))
+        Mockito.when(bookingClient.create(Mockito.eq(USER_ID), Mockito.any(CreateBookingRequest.class)))
                 .thenReturn(ResponseEntity.status(201).body(Map.of("id", BOOKING_ID, "status", "WAITING")));
 
         mockMvc.perform(MockMvcRequestBuilders.post("/bookings")
@@ -50,9 +50,9 @@ class BookingControllerTest {
                 .andExpect(jsonPath("$.status").value("WAITING"));
 
         Mockito.verify(bookingClient).create(Mockito.eq(USER_ID), Mockito.argThat(request ->
-                request.getItemId().equals(1L)
-                        && request.getStart().equals(LocalDateTime.parse("2099-01-01T10:00:00"))
-                        && request.getEnd().equals(LocalDateTime.parse("2099-01-01T11:00:00"))));
+                request.itemId().equals(1L)
+                        && request.start().equals(LocalDateTime.parse("2099-01-01T10:00:00"))
+                        && request.end().equals(LocalDateTime.parse("2099-01-01T11:00:00"))));
     }
 
     @ParameterizedTest

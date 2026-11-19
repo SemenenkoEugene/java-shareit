@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
@@ -14,11 +16,12 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import ru.practicum.shareit.booking.dto.BookingRequestDto;
-import ru.practicum.shareit.booking.dto.BookingResponseDto;
 import ru.practicum.shareit.booking.dto.RequestBookingStatus;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
+import ru.practicum.shareit.generated.booking.dto.BookingResponse;
+import ru.practicum.shareit.generated.booking.dto.BookingStatus;
+import ru.practicum.shareit.generated.booking.dto.CreateBookingRequest;
 import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.User;
@@ -99,17 +102,27 @@ class BookingServiceTest {
     @Test
     void getByIdTest() {
 
-        final BookingResponseDto responseDto = bookingService.getById(BOOKING_1.getId(), OWNER.getId());
+        final BookingResponse responseDto = bookingService.getById(BOOKING_1.getId(), OWNER.getId());
 
-        Assertions.assertThat(responseDto.getId()).isEqualTo(BOOKING_1.getId());
-        Assertions.assertThat(responseDto.getStatus()).isEqualTo(BOOKING_1.getStatus());
-        Assertions.assertThat(responseDto.getBooker().getId()).isEqualTo(BOOKER.getId());
-        Assertions.assertThat(responseDto.getItem().getId()).isEqualTo(ITEM_1.getId());
-        Assertions.assertThat(responseDto.getItem().getName()).isEqualTo(ITEM_1.getName());
+        Assertions.assertThat(responseDto.id()).isEqualTo(BOOKING_1.getId());
+        Assertions.assertThat(responseDto.status()).isEqualTo(BookingStatus.APPROVED);
+        Assertions.assertThat(responseDto.booker().id()).isEqualTo(BOOKER.getId());
+        Assertions.assertThat(responseDto.item().id()).isEqualTo(ITEM_1.getId());
+        Assertions.assertThat(responseDto.item().name()).isEqualTo(ITEM_1.getName());
 
         Mockito.verify(bookingRepository, Mockito.times(1)).findById(BOOKING_1.getId());
         Mockito.verify(userRepository, Mockito.times(1)).findById(OWNER.getId());
         Mockito.verifyNoMoreInteractions(itemRepository, userRepository, bookingRepository);
+    }
+
+    @ParameterizedTest
+    @EnumSource(Status.class)
+    void mapperShouldConvertEveryDomainStatus(final Status status) {
+        final Booking booking = BOOKING_1.toBuilder().status(status).build();
+
+        final BookingResponse response = BookingMapper.toDto(booking);
+
+        Assertions.assertThat(response.status()).isEqualTo(BookingStatus.valueOf(status.name()));
     }
 
     @Test
@@ -154,7 +167,7 @@ class BookingServiceTest {
         Mockito.when(bookingRepository.findAllByUserIdAndStatusOrderByStartDesc(Mockito.anyLong(), Mockito.eq(Status.REJECTED), Mockito.any()))
                 .thenReturn(bookingList);
 
-        final List<BookingResponseDto> responseDtoList = bookingService.getAllByState(RequestBookingStatus.ALL, BOOKER.getId(), 0, 10);
+        final List<BookingResponse> responseDtoList = bookingService.getAllByState(RequestBookingStatus.ALL, BOOKER.getId(), 0, 10);
 
         bookingService.getAllByState(RequestBookingStatus.PAST, BOOKER.getId(), 0, 10);
         bookingService.getAllByState(RequestBookingStatus.FUTURE, BOOKER.getId(), 0, 10);
@@ -162,8 +175,8 @@ class BookingServiceTest {
         bookingService.getAllByState(RequestBookingStatus.WAITING, BOOKER.getId(), 0, 10);
         bookingService.getAllByState(RequestBookingStatus.REJECTED, BOOKER.getId(), 0, 10);
 
-        Assertions.assertThat(responseDtoList.get(0).getId()).isEqualTo(booking1.getId());
-        Assertions.assertThat(responseDtoList.get(1).getId()).isEqualTo(booking2.getId());
+        Assertions.assertThat(responseDtoList.get(0).id()).isEqualTo(booking1.getId());
+        Assertions.assertThat(responseDtoList.get(1).id()).isEqualTo(booking2.getId());
 
         Mockito.verify(userRepository, Mockito.times(6)).findById(BOOKER.getId());
         Mockito.verify(bookingRepository)
@@ -207,7 +220,7 @@ class BookingServiceTest {
 
         final List<Long> actualBookingIds = bookingService
                 .getAllByState(RequestBookingStatus.ALL, BOOKER.getId(), from, size).stream()
-                .map(BookingResponseDto::getId)
+                .map(BookingResponse::id)
                 .toList();
 
         Assertions.assertThat(actualBookingIds).isEqualTo(expectedBookingIds);
@@ -251,7 +264,7 @@ class BookingServiceTest {
         Mockito.when(bookingRepository.findAllByItemOwnerIdAndStatusOrderByStartDesc(Mockito.anyLong(), Mockito.eq(Status.REJECTED), Mockito.any()))
                 .thenReturn(bookingList);
 
-        final List<BookingResponseDto> responseDtoList = bookingService.getAllByStateForOwner(RequestBookingStatus.ALL, OWNER.getId(), 0, 10);
+        final List<BookingResponse> responseDtoList = bookingService.getAllByStateForOwner(RequestBookingStatus.ALL, OWNER.getId(), 0, 10);
 
         bookingService.getAllByStateForOwner(RequestBookingStatus.PAST, OWNER.getId(), 0, 10);
         bookingService.getAllByStateForOwner(RequestBookingStatus.FUTURE, OWNER.getId(), 0, 10);
@@ -259,8 +272,8 @@ class BookingServiceTest {
         bookingService.getAllByStateForOwner(RequestBookingStatus.WAITING, OWNER.getId(), 0, 10);
         bookingService.getAllByStateForOwner(RequestBookingStatus.REJECTED, OWNER.getId(), 0, 10);
 
-        Assertions.assertThat(responseDtoList.get(0).getId()).isEqualTo(booking1.getId());
-        Assertions.assertThat(responseDtoList.get(1).getId()).isEqualTo(booking2.getId());
+        Assertions.assertThat(responseDtoList.get(0).id()).isEqualTo(booking1.getId());
+        Assertions.assertThat(responseDtoList.get(1).id()).isEqualTo(booking2.getId());
 
         Mockito.verify(userRepository, Mockito.times(6)).findById(OWNER.getId());
         Mockito.verify(bookingRepository).findAllByItemOwnerIdOrderByStartDesc(Mockito.eq(OWNER.getId()), Mockito.any(Pageable.class));
@@ -301,7 +314,7 @@ class BookingServiceTest {
 
         final List<Long> actualBookingIds = bookingService
                 .getAllByStateForOwner(RequestBookingStatus.ALL, OWNER.getId(), from, size).stream()
-                .map(BookingResponseDto::getId)
+                .map(BookingResponse::id)
                 .toList();
 
         Assertions.assertThat(actualBookingIds).isEqualTo(expectedBookingIds);
@@ -322,7 +335,7 @@ class BookingServiceTest {
 
         final LocalDateTime start = LocalDateTime.now().plusDays(1);
         final LocalDateTime end = start.plusDays(2);
-        final BookingRequestDto requestDto = BookingRequestDto.builder()
+        final CreateBookingRequest requestDto = CreateBookingRequest.builder()
                 .itemId(ITEM_1.getId())
                 .start(start)
                 .end(end)
@@ -341,7 +354,7 @@ class BookingServiceTest {
         Mockito.when(itemRepository.findById(ITEM_1.getId())).thenReturn(Optional.of(ITEM_1));
         Mockito.when(bookingRepository.save(Mockito.any(Booking.class))).thenReturn(savedBooking);
 
-        final BookingResponseDto responseDto = bookingService.create(requestDto, BOOKER.getId());
+        final BookingResponse responseDto = bookingService.create(requestDto, BOOKER.getId());
 
         Mockito.verify(userRepository).findById(BOOKER.getId());
         Mockito.verify(itemRepository).findById(ITEM_1.getId());
@@ -357,13 +370,13 @@ class BookingServiceTest {
                 });
         Assertions.assertThat(responseDto)
                 .satisfies(dto -> {
-                    Assertions.assertThat(dto.getId()).isEqualTo(savedBooking.getId());
-                    Assertions.assertThat(dto.getStatus()).isEqualTo(Status.WAITING);
-                    Assertions.assertThat(dto.getBooker().getId()).isEqualTo(BOOKER.getId());
-                    Assertions.assertThat(dto.getItem().getId()).isEqualTo(ITEM_1.getId());
-                    Assertions.assertThat(dto.getItem().getName()).isEqualTo(ITEM_1.getName());
-                    Assertions.assertThat(dto.getStart()).isEqualTo(start);
-                    Assertions.assertThat(dto.getEnd()).isEqualTo(end);
+                    Assertions.assertThat(dto.id()).isEqualTo(savedBooking.getId());
+                    Assertions.assertThat(dto.status()).isEqualTo(BookingStatus.WAITING);
+                    Assertions.assertThat(dto.booker().id()).isEqualTo(BOOKER.getId());
+                    Assertions.assertThat(dto.item().id()).isEqualTo(ITEM_1.getId());
+                    Assertions.assertThat(dto.item().name()).isEqualTo(ITEM_1.getName());
+                    Assertions.assertThat(dto.start()).isEqualTo(start);
+                    Assertions.assertThat(dto.end()).isEqualTo(end);
                 });
         Mockito.verifyNoMoreInteractions(itemRepository, userRepository, bookingRepository);
     }
@@ -372,7 +385,7 @@ class BookingServiceTest {
     @MethodSource("bookingDateArguments")
     void createShouldRequireEndAfterStart(final LocalDateTime start, final LocalDateTime end,
                                           final boolean validDates) {
-        final BookingRequestDto requestDto = BookingRequestDto.builder()
+        final CreateBookingRequest requestDto = CreateBookingRequest.builder()
                 .itemId(ITEM_1.getId())
                 .start(start)
                 .end(end)
@@ -391,10 +404,10 @@ class BookingServiceTest {
         Mockito.when(bookingRepository.save(Mockito.any(Booking.class))).thenReturn(savedBooking);
 
         if (validDates) {
-            final BookingResponseDto response = bookingService.create(requestDto, BOOKER.getId());
+            final BookingResponse response = bookingService.create(requestDto, BOOKER.getId());
 
-            Assertions.assertThat(response.getStart()).isEqualTo(start);
-            Assertions.assertThat(response.getEnd()).isEqualTo(end);
+            Assertions.assertThat(response.start()).isEqualTo(start);
+            Assertions.assertThat(response.end()).isEqualTo(end);
             Mockito.verify(bookingRepository).save(Mockito.any(Booking.class));
         } else {
             Assertions.assertThatThrownBy(() -> bookingService.create(requestDto, BOOKER.getId()))
@@ -416,7 +429,7 @@ class BookingServiceTest {
     @ParameterizedTest
     @MethodSource("nullBookingDateArguments")
     void createShouldRejectNullDates(final LocalDateTime start, final LocalDateTime end) {
-        final BookingRequestDto requestDto = BookingRequestDto.builder()
+        final CreateBookingRequest requestDto = CreateBookingRequest.builder()
                 .itemId(ITEM_1.getId())
                 .start(start)
                 .end(end)
@@ -445,7 +458,7 @@ class BookingServiceTest {
     void createShouldRequireStartAfterCurrentTime(final LocalDateTime start) {
         final LocalDateTime now = LocalDateTime.of(2030, 1, 2, 12, 0);
         final LocalDateTime end = now.plusHours(2);
-        final BookingRequestDto requestDto = BookingRequestDto.builder()
+        final CreateBookingRequest requestDto = CreateBookingRequest.builder()
                 .itemId(ITEM_1.getId())
                 .start(start)
                 .end(end)
@@ -485,7 +498,7 @@ class BookingServiceTest {
     @Test
     void createTest_UserNotFound() {
 
-        final BookingRequestDto requestDto = BookingRequestDto.builder()
+        final CreateBookingRequest requestDto = CreateBookingRequest.builder()
                 .itemId(ITEM_1.getId())
                 .build();
 
@@ -502,7 +515,7 @@ class BookingServiceTest {
     @Test
     void createTest_ItemNotFound() {
 
-        final BookingRequestDto requestDto = BookingRequestDto.builder()
+        final CreateBookingRequest requestDto = CreateBookingRequest.builder()
                 .itemId(ITEM_1.getId())
                 .build();
 
@@ -525,7 +538,7 @@ class BookingServiceTest {
                 .available(false)
                 .build();
 
-        final BookingRequestDto requestDto = BookingRequestDto.builder()
+        final CreateBookingRequest requestDto = CreateBookingRequest.builder()
                 .itemId(item.getId())
                 .build();
 
@@ -544,7 +557,7 @@ class BookingServiceTest {
     @Test
     void createTest_BookOwnItem() {
 
-        final BookingRequestDto requestDto = BookingRequestDto.builder()
+        final CreateBookingRequest requestDto = CreateBookingRequest.builder()
                 .itemId(ITEM_1.getId())
                 .build();
 
@@ -560,8 +573,9 @@ class BookingServiceTest {
         Mockito.verifyNoMoreInteractions(itemRepository, userRepository, bookingRepository);
     }
 
-    @Test
-    void approveTest() {
+    @ParameterizedTest
+    @CsvSource({"true, APPROVED", "false, REJECTED"})
+    void approveTest(final boolean approved, final BookingStatus expectedStatus) {
 
         final Booking booking = BOOKING_1.toBuilder()
                 .status(Status.WAITING)
@@ -570,13 +584,13 @@ class BookingServiceTest {
         Mockito.when(bookingRepository.findByIdForUpdate(Mockito.anyLong())).thenReturn(Optional.of(booking));
         Mockito.when(bookingRepository.save(Mockito.any())).thenReturn(booking);
 
-        final BookingResponseDto responseDto = bookingService.approve(booking.getId(), true, OWNER.getId());
+        final BookingResponse responseDto = bookingService.approve(booking.getId(), approved, OWNER.getId());
 
-        Assertions.assertThat(responseDto.getId()).isEqualTo(booking.getId());
-        Assertions.assertThat(responseDto.getStatus()).isEqualTo(booking.getStatus());
-        Assertions.assertThat(responseDto.getBooker().getId()).isEqualTo(BOOKER.getId());
-        Assertions.assertThat(responseDto.getItem().getId()).isEqualTo(ITEM_1.getId());
-        Assertions.assertThat(responseDto.getItem().getName()).isEqualTo(ITEM_1.getName());
+        Assertions.assertThat(responseDto.id()).isEqualTo(booking.getId());
+        Assertions.assertThat(responseDto.status()).isEqualTo(expectedStatus);
+        Assertions.assertThat(responseDto.booker().id()).isEqualTo(BOOKER.getId());
+        Assertions.assertThat(responseDto.item().id()).isEqualTo(ITEM_1.getId());
+        Assertions.assertThat(responseDto.item().name()).isEqualTo(ITEM_1.getName());
 
         Mockito.verify(bookingRepository).findByIdForUpdate(booking.getId());
         Mockito.verify(userRepository).findById(OWNER.getId());

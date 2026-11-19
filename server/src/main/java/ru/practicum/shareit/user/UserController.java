@@ -16,7 +16,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.generated.user.dto.CreateUserRequest;
+import ru.practicum.shareit.generated.user.dto.UpdateUserRequest;
+import ru.practicum.shareit.generated.user.dto.UserResponse;
 
 import java.util.List;
 
@@ -34,18 +36,18 @@ public class UserController {
             description = "Добавляет нового пользователя в систему",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Пользователь успешно создан",
-                            content = @Content(schema = @Schema(implementation = UserDto.class))),
+                            content = @Content(schema = @Schema(implementation = UserResponse.class))),
                     @ApiResponse(responseCode = "400", description = "Некорректные данные запроса")
             }
     )
     @PostMapping
-    public UserDto create(
+    public UserResponse create(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Данные нового пользователя",
                     required = true,
-                    content = @Content(schema = @Schema(implementation = UserDto.class))
+                    content = @Content(schema = @Schema(implementation = CreateUserRequest.class))
             )
-            @RequestBody final UserDto userDto
+            @RequestBody final CreateUserRequest userDto
     ) {
         log.debug("POST /users — создание нового пользователя");
         return userService.create(userDto);
@@ -56,18 +58,18 @@ public class UserController {
             description = "Позволяет изменить имя или email пользователя",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Данные пользователя обновлены",
-                            content = @Content(schema = @Schema(implementation = UserDto.class))),
+                            content = @Content(schema = @Schema(implementation = UserResponse.class))),
                     @ApiResponse(responseCode = "404", description = "Пользователь не найден")
             }
     )
     @PatchMapping("/{userId}")
-    public UserDto update(
+    public UserResponse update(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Обновлённые данные пользователя",
                     required = true,
-                    content = @Content(schema = @Schema(implementation = UserDto.class))
+                    content = @Content(schema = @Schema(implementation = UpdateUserRequest.class))
             )
-            @RequestBody final UserDto userDto,
+            @RequestBody final UpdateUserRequest userDto,
             @Parameter(description = "ID пользователя", required = true)
             @PathVariable final Long userId
     ) {
@@ -98,7 +100,7 @@ public class UserController {
             responses = @ApiResponse(responseCode = "200", description = "Список пользователей получен")
     )
     @GetMapping
-    public List<UserDto> getUsers() {
+    public List<UserResponse> getUsers() {
         log.debug("GET /users — получение списка всех пользователей");
         return userService.getUsers();
     }
@@ -108,12 +110,12 @@ public class UserController {
             description = "Возвращает данные пользователя по его идентификатору",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Пользователь найден",
-                            content = @Content(schema = @Schema(implementation = UserDto.class))),
+                            content = @Content(schema = @Schema(implementation = UserResponse.class))),
                     @ApiResponse(responseCode = "404", description = "Пользователь не найден")
             }
     )
     @GetMapping("/{userId}")
-    public UserDto getUserById(
+    public UserResponse getUserById(
             @Parameter(description = "ID пользователя", required = true)
             @PathVariable final Long userId
     ) {

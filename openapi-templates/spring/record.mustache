@@ -1,0 +1,66 @@
+{{>additionalModelTypeAnnotations}}{{#isDeprecated}}@Deprecated
+{{/isDeprecated}}{{#description}}{{#swagger2AnnotationLibrary}}@Schema({{#name}}name = "{{name}}", {{/name}}description = "{{{description}}}"{{#deprecated}}, deprecated = true{{/deprecated}})
+{{/swagger2AnnotationLibrary}}{{/description}}{{#jackson}}{{#isClassnameSanitized}}{{^hasDiscriminatorWithNonEmptyMapping}}@com.fasterxml.jackson.annotation.JsonTypeName("{{name}}")
+{{/hasDiscriminatorWithNonEmptyMapping}}{{/isClassnameSanitized}}{{/jackson}}{{#vendorExtensions.x-class-extra-annotation}}{{{.}}}
+{{/vendorExtensions.x-class-extra-annotation}}public record {{classname}}(
+{{#vars}}{{#vendorExtensions.x-field-extra-annotation}}    {{{.}}}
+{{/vendorExtensions.x-field-extra-annotation}}{{#jackson}}{{#vendorExtensions.x-jackson-json-include-policy}}    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.{{{vendorExtensions.x-jackson-json-include-policy}}})
+{{/vendorExtensions.x-jackson-json-include-policy}}{{#vendorExtensions.x-has-json-setter-nulls-skip}}    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.SKIP)
+{{/vendorExtensions.x-has-json-setter-nulls-skip}}{{#vendorExtensions.x-has-json-setter-nulls-fail}}    @com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.FAIL)
+{{/vendorExtensions.x-has-json-setter-nulls-fail}}{{/jackson}}{{#deprecated}}    @Deprecated
+{{/deprecated}}{{^isContainer}}{{#isDate}}    @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
+{{/isDate}}{{#isDateTime}}    @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
+{{/isDateTime}}{{/isContainer}}{{#vendorExtensions.x-extra-annotation}}    {{{vendorExtensions.x-extra-annotation}}}
+{{/vendorExtensions.x-extra-annotation}}{{#vendorExtensions.x-setter-extra-annotation}}    {{{vendorExtensions.x-setter-extra-annotation}}}
+{{/vendorExtensions.x-setter-extra-annotation}}{{#useBeanValidation}}{{#required}}{{^isReadOnly}}{{^isNullable}}    @jakarta.validation.constraints.NotNull
+{{/isNullable}}{{/isReadOnly}}{{/required}}{{^isContainer}}{{^isPrimitiveType}}    @jakarta.validation.Valid
+{{/isPrimitiveType}}{{/isContainer}}{{^isUuid}}{{#pattern}}{{^isByteArray}}    @jakarta.validation.constraints.Pattern(regexp = "{{{pattern}}}"{{#vendorExtensions.x-pattern-message}}, message = "{{vendorExtensions.x-pattern-message}}"{{/vendorExtensions.x-pattern-message}})
+{{/isByteArray}}{{/pattern}}{{#minLength}}{{#maxLength}}    @jakarta.validation.constraints.Size(min = {{minLength}}, max = {{maxLength}}{{#vendorExtensions.x-size-message}}, message = "{{vendorExtensions.x-size-message}}"{{/vendorExtensions.x-size-message}})
+{{/maxLength}}{{/minLength}}{{#minLength}}{{^maxLength}}    @jakarta.validation.constraints.Size(min = {{minLength}}{{#vendorExtensions.x-size-message}}, message = "{{vendorExtensions.x-size-message}}"{{/vendorExtensions.x-size-message}})
+{{/maxLength}}{{/minLength}}{{^minLength}}{{#maxLength}}    @jakarta.validation.constraints.Size(max = {{.}}{{#vendorExtensions.x-size-message}}, message = "{{vendorExtensions.x-size-message}}"{{/vendorExtensions.x-size-message}})
+{{/maxLength}}{{/minLength}}{{#minItems}}{{#maxItems}}    @jakarta.validation.constraints.Size(min = {{minItems}}, max = {{maxItems}}{{#vendorExtensions.x-size-message}}, message = "{{vendorExtensions.x-size-message}}"{{/vendorExtensions.x-size-message}})
+{{/maxItems}}{{/minItems}}{{#minItems}}{{^maxItems}}    @jakarta.validation.constraints.Size(min = {{minItems}}{{#vendorExtensions.x-size-message}}, message = "{{vendorExtensions.x-size-message}}"{{/vendorExtensions.x-size-message}})
+{{/maxItems}}{{/minItems}}{{^minItems}}{{#maxItems}}    @jakarta.validation.constraints.Size(max = {{.}}{{#vendorExtensions.x-size-message}}, message = "{{vendorExtensions.x-size-message}}"{{/vendorExtensions.x-size-message}})
+{{/maxItems}}{{/minItems}}{{#isEmail}}    @jakarta.validation.constraints.Email
+{{/isEmail}}{{#isInteger}}{{#minimum}}    @jakarta.validation.constraints.Min(value = {{.}}{{#vendorExtensions.x-minimum-message}}, message = "{{vendorExtensions.x-minimum-message}}"{{/vendorExtensions.x-minimum-message}})
+{{/minimum}}{{#maximum}}    @jakarta.validation.constraints.Max(value = {{.}}{{#vendorExtensions.x-maximum-message}}, message = "{{vendorExtensions.x-maximum-message}}"{{/vendorExtensions.x-maximum-message}})
+{{/maximum}}{{/isInteger}}{{#isLong}}{{#minimum}}    @jakarta.validation.constraints.Min(value = {{.}}L{{#vendorExtensions.x-minimum-message}}, message = "{{vendorExtensions.x-minimum-message}}"{{/vendorExtensions.x-minimum-message}})
+{{/minimum}}{{#maximum}}    @jakarta.validation.constraints.Max(value = {{.}}L{{#vendorExtensions.x-maximum-message}}, message = "{{vendorExtensions.x-maximum-message}}"{{/vendorExtensions.x-maximum-message}})
+{{/maximum}}{{/isLong}}{{^isInteger}}{{^isLong}}{{#minimum}}    @jakarta.validation.constraints.DecimalMin(value = "{{minimum}}"{{#exclusiveMinimum}}, inclusive = false{{/exclusiveMinimum}}{{#vendorExtensions.x-minimum-message}}, message = "{{vendorExtensions.x-minimum-message}}"{{/vendorExtensions.x-minimum-message}})
+{{/minimum}}{{#maximum}}    @jakarta.validation.constraints.DecimalMax(value = "{{maximum}}"{{#exclusiveMaximum}}, inclusive = false{{/exclusiveMaximum}}{{#vendorExtensions.x-maximum-message}}, message = "{{vendorExtensions.x-maximum-message}}"{{/vendorExtensions.x-maximum-message}})
+{{/maximum}}{{/isLong}}{{/isInteger}}{{/isUuid}}{{/useBeanValidation}}{{#swagger2AnnotationLibrary}}    @Schema(name = "{{{baseName}}}"{{#isReadOnly}}, accessMode = Schema.AccessMode.READ_ONLY{{/isReadOnly}}{{#example}}, example = "{{{.}}}"{{/example}}{{#description}}, description = "{{{.}}}"{{/description}}{{#deprecated}}, deprecated = true{{/deprecated}}, requiredMode = {{#required}}Schema.RequiredMode.REQUIRED{{/required}}{{^required}}Schema.RequiredMode.NOT_REQUIRED{{/required}}{{#isNullable}}, nullable = true{{/isNullable}})
+{{/swagger2AnnotationLibrary}}{{#vendorExtensions.x-record-bind-param}}    @org.springframework.web.bind.annotation.BindParam("{{{.}}}")
+{{/vendorExtensions.x-record-bind-param}}{{#jackson}}    @com.fasterxml.jackson.annotation.JsonProperty("{{baseName}}")
+{{/jackson}}{{#lambda.jSpecifyNullable}}{{^required}}{{^defaultValue}}{{^useOptional}}{{#openApiNullable}}{{^isNullable}}    @org.springframework.lang.Nullable
+{{/isNullable}}{{/openApiNullable}}{{^openApiNullable}}    @org.springframework.lang.Nullable
+{{/openApiNullable}}{{/useOptional}}{{/defaultValue}}{{#defaultValue}}{{^openApiNullable}}{{#isNullable}}    @org.springframework.lang.Nullable
+{{/isNullable}}{{/openApiNullable}}{{/defaultValue}}{{/required}}{{/lambda.jSpecifyNullable}}    {{#isArray}}java.util.{{#uniqueItems}}Set{{/uniqueItems}}{{^uniqueItems}}List{{/uniqueItems}}<{{#items}}{{^isPrimitiveType}}@jakarta.validation.Valid {{/isPrimitiveType}}{{#isDate}}java.time.LocalDate{{/isDate}}{{#isDateTime}}java.time.LocalDateTime{{/isDateTime}}{{^isDate}}{{^isDateTime}}{{{datatypeWithEnum}}}{{/isDateTime}}{{/isDate}}{{/items}}>{{/isArray}}{{#isMap}}java.util.Map<String, {{#items}}{{^isPrimitiveType}}@jakarta.validation.Valid {{/isPrimitiveType}}{{#isDate}}java.time.LocalDate{{/isDate}}{{#isDateTime}}java.time.LocalDateTime{{/isDateTime}}{{^isDate}}{{^isDateTime}}{{{datatypeWithEnum}}}{{/isDateTime}}{{/isDate}}{{/items}}>{{/isMap}}{{^isContainer}}{{#isDate}}java.time.LocalDate{{/isDate}}{{#isDateTime}}java.time.LocalDateTime{{/isDateTime}}{{^isDate}}{{^isDateTime}}{{{datatypeWithEnum}}}{{/isDateTime}}{{/isDate}}{{/isContainer}} {{name}}{{^-last}},{{/-last}}{{#-last}}{{#additionalPropertiesType}},{{/additionalPropertiesType}}{{/-last}}
+{{^-last}}
+
+{{/-last}}
+{{/vars}}){{#vendorExtensions.x-implements}}{{#-first}} implements {{{.}}}{{/-first}}{{^-first}}, {{{.}}}{{/-first}}{{/vendorExtensions.x-implements}} {
+{{#serializableModel}}    private static final long serialVersionUID = 1L;
+{{/serializableModel}}{{#vendorExtensions.x-record-has-initial-values}}    public {{classname}} {
+{{#vars}}{{#vendorExtensions.x-record-initial-value}}        if ({{name}} == null) {
+            {{name}} = {{{.}}};
+        }
+{{/vendorExtensions.x-record-initial-value}}{{/vars}}{{#additionalPropertiesType}}        if (additionalProperties == null) {
+            additionalProperties = new java.util.LinkedHashMap<>();
+        }
+{{/additionalPropertiesType}}    }
+{{/vendorExtensions.x-record-has-initial-values}}{{#additionalPropertiesType}}    public {{{.}}} getAdditionalProperty(String key) {
+        return additionalProperties.get(key);
+    }
+{{/additionalPropertiesType}}{{#vendorExtensions.x-record-discriminator-accessors}}{{#jackson}}    @com.fasterxml.jackson.annotation.JsonProperty("{{baseName}}")
+{{/jackson}}    public {{{type}}} {{getter}}() {
+        return {{component}};
+    }
+{{/vendorExtensions.x-record-discriminator-accessors}}{{#vendorExtensions.x-record-masks-password}}    @Override
+    public String toString() {
+        return "{{classname}}["
+{{#vars}}            + "{{^-first}}, {{/-first}}{{name}}=" + {{#isPassword}}"*"{{/isPassword}}{{^isPassword}}{{name}}{{/isPassword}}
+{{/vars}}{{#additionalPropertiesType}}            + ", additionalProperties=" + additionalProperties
+{{/additionalPropertiesType}}            + "]";
+    }
+{{/vendorExtensions.x-record-masks-password}}{{#generateBuilders}}
+{{>recordBuilder}}{{/generateBuilders}}}

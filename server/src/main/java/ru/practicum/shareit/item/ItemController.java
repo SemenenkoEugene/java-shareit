@@ -18,8 +18,11 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import ru.practicum.shareit.item.dto.CommentDto;
-import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.generated.item.dto.CommentResponse;
+import ru.practicum.shareit.generated.item.dto.CreateCommentRequest;
+import ru.practicum.shareit.generated.item.dto.CreateItemRequest;
+import ru.practicum.shareit.generated.item.dto.ItemResponse;
+import ru.practicum.shareit.generated.item.dto.UpdateItemRequest;
 
 import java.util.List;
 
@@ -38,19 +41,19 @@ public class ItemController {
             description = "Добавляет новую вещь для аренды от имени владельца",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Вещь успешно добавлена",
-                            content = @Content(schema = @Schema(implementation = ItemDto.class))),
+                            content = @Content(schema = @Schema(implementation = ItemResponse.class))),
                     @ApiResponse(responseCode = "400", description = "Некорректные данные запроса"),
                     @ApiResponse(responseCode = "404", description = "Пользователь не найден")
             }
     )
     @PostMapping
-    public ItemDto create(
+    public ItemResponse create(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Данные новой вещи",
                     required = true,
-                    content = @Content(schema = @Schema(implementation = ItemDto.class))
+                    content = @Content(schema = @Schema(implementation = CreateItemRequest.class))
             )
-            @RequestBody final ItemDto itemDto,
+            @RequestBody final CreateItemRequest itemDto,
             @Parameter(description = "ID владельца вещи", required = true)
             @RequestHeader(HEADER) final Long userId
     ) {
@@ -63,19 +66,19 @@ public class ItemController {
             description = "Позволяет пользователю оставить отзыв о вещи после аренды",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Комментарий добавлен",
-                            content = @Content(schema = @Schema(implementation = CommentDto.class))),
+                            content = @Content(schema = @Schema(implementation = CommentResponse.class))),
                     @ApiResponse(responseCode = "400", description = "Некорректные данные или пользователь не арендовал вещь"),
                     @ApiResponse(responseCode = "404", description = "Вещь не найдена")
             }
     )
     @PostMapping("{itemId}/comment")
-    public CommentDto createComment(
+    public CommentResponse createComment(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Текст комментария",
                     required = true,
-                    content = @Content(schema = @Schema(implementation = CommentDto.class))
+                    content = @Content(schema = @Schema(implementation = CreateCommentRequest.class))
             )
-            @RequestBody final CommentDto commentDto,
+            @RequestBody final CreateCommentRequest commentDto,
             @Parameter(description = "ID пользователя, оставляющего комментарий", required = true)
             @RequestHeader(HEADER) final Long userId,
             @Parameter(description = "ID вещи", required = true)
@@ -90,12 +93,12 @@ public class ItemController {
             description = "Позволяет владельцу изменить описание, доступность или название вещи",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Информация о вещи обновлена",
-                            content = @Content(schema = @Schema(implementation = ItemDto.class))),
+                            content = @Content(schema = @Schema(implementation = ItemResponse.class))),
                     @ApiResponse(responseCode = "404", description = "Вещь не найдена")
             }
     )
     @PatchMapping("/{itemId}")
-    public ItemDto update(
+    public ItemResponse update(
             @Parameter(description = "ID вещи", required = true)
             @PathVariable final Long itemId,
             @Parameter(description = "ID владельца вещи", required = true)
@@ -103,9 +106,9 @@ public class ItemController {
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Обновлённые данные вещи",
                     required = true,
-                    content = @Content(schema = @Schema(implementation = ItemDto.class))
+                    content = @Content(schema = @Schema(implementation = UpdateItemRequest.class))
             )
-            @RequestBody final ItemDto itemDto
+            @RequestBody final UpdateItemRequest itemDto
     ) {
         log.debug("PATCH /items/{} — обновление вещи", itemId);
         return itemService.update(itemDto, itemId, userId);
@@ -132,10 +135,10 @@ public class ItemController {
             summary = "Получить вещь по ID",
             description = "Возвращает данные вещи, включая комментарии и информацию о бронировании",
             responses = @ApiResponse(responseCode = "200", description = "Вещь найдена",
-                    content = @Content(schema = @Schema(implementation = ItemDto.class)))
+                    content = @Content(schema = @Schema(implementation = ItemResponse.class)))
     )
     @GetMapping("/{itemId}")
-    public ItemDto getItemById(
+    public ItemResponse getItemById(
             @Parameter(description = "ID пользователя, запрашивающего вещь", required = true)
             @RequestHeader(HEADER) final Long userId,
             @Parameter(description = "ID вещи", required = true)
@@ -151,7 +154,7 @@ public class ItemController {
             responses = @ApiResponse(responseCode = "200", description = "Список вещей получен")
     )
     @GetMapping
-    public List<ItemDto> getItemsByOwnerId(
+    public List<ItemResponse> getItemsByOwnerId(
             @Parameter(description = "ID владельца вещей", required = true)
             @RequestHeader(HEADER) final Long userId,
             @Parameter(description = "Номер первой записи (пагинация)", example = "0")
@@ -169,7 +172,7 @@ public class ItemController {
             responses = @ApiResponse(responseCode = "200", description = "Результаты поиска получены")
     )
     @GetMapping("/search")
-    public List<ItemDto> getItemsBySearchQuery(
+    public List<ItemResponse> getItemsBySearchQuery(
             @Parameter(description = "Текст для поиска", required = true)
             @RequestParam(name = "text") final String searchText,
             @Parameter(description = "Номер первой записи (пагинация)", example = "0")

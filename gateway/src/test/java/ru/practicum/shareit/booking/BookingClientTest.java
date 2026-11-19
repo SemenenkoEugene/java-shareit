@@ -18,8 +18,8 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.client.ResponseActions;
 import org.springframework.test.web.client.match.MockRestRequestMatchers;
 import org.springframework.web.client.RestTemplate;
-import ru.practicum.shareit.booking.dto.BookingRequestDto;
 import ru.practicum.shareit.booking.dto.RequestBookingStatus;
+import ru.practicum.shareit.generated.booking.dto.CreateBookingRequest;
 
 import java.time.LocalDateTime;
 
@@ -50,7 +50,7 @@ class BookingClientTest {
 
     @Test
     void createShouldSendBookingAsJson() {
-        final BookingRequestDto request = BookingRequestDto.builder()
+        final CreateBookingRequest request = CreateBookingRequest.builder()
                 .start(LocalDateTime.of(2030, 1, 2, 10, 15, 30))
                 .end(LocalDateTime.of(2030, 1, 2, 11, 45, 30))
                 .itemId(7L)
