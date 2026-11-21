@@ -8,9 +8,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.shareit.request.dto.ItemRequestCreateDto;
-import ru.practicum.shareit.request.dto.ItemRequestCreateResponseDto;
-import ru.practicum.shareit.request.dto.ItemRequestGetResponseDto;
+import ru.practicum.shareit.generated.request.dto.CreateItemRequestRequest;
+import ru.practicum.shareit.generated.request.dto.ItemRequestCreateResponse;
+import ru.practicum.shareit.generated.request.dto.ItemRequestResponse;
 
 import java.util.List;
 
@@ -28,21 +28,21 @@ public class ItemRequestController {
             description = "Позволяет пользователю создать новый запрос на добавление вещи, которой пока нет в системе",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Запрос успешно создан",
-                            content = @Content(schema = @Schema(implementation = ItemRequestCreateResponseDto.class))),
+                            content = @Content(schema = @Schema(implementation = ItemRequestCreateResponse.class))),
                     @ApiResponse(responseCode = "400", description = "Некорректные данные запроса"),
                     @ApiResponse(responseCode = "404", description = "Пользователь не найден")
             }
     )
     @PostMapping
-    public ItemRequestCreateResponseDto create(
+    public ItemRequestCreateResponse create(
             @Parameter(description = "ID пользователя, создающего запрос", required = true)
             @RequestHeader(HEADER) final Long userId,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Данные нового запроса на вещь",
                     required = true,
-                    content = @Content(schema = @Schema(implementation = ItemRequestCreateDto.class))
+                    content = @Content(schema = @Schema(implementation = CreateItemRequestRequest.class))
             )
-            @RequestBody final ItemRequestCreateDto itemRequestCreateDto
+            @RequestBody final CreateItemRequestRequest itemRequestCreateDto
     ) {
         return itemRequestService.create(itemRequestCreateDto, userId);
     }
@@ -53,7 +53,7 @@ public class ItemRequestController {
             responses = @ApiResponse(responseCode = "200", description = "Список запросов успешно получен")
     )
     @GetMapping
-    public List<ItemRequestGetResponseDto> getAllByOwnerId(
+    public List<ItemRequestResponse> getAllByOwnerId(
             @Parameter(description = "ID пользователя, чьи запросы нужно получить", required = true)
             @RequestHeader(HEADER) final Long userId,
             @Parameter(description = "Номер первой записи (пагинация)", example = "0")
@@ -70,7 +70,7 @@ public class ItemRequestController {
             responses = @ApiResponse(responseCode = "200", description = "Список запросов успешно получен")
     )
     @GetMapping("/all")
-    public List<ItemRequestGetResponseDto> getAll(
+    public List<ItemRequestResponse> getAll(
             @Parameter(description = "ID пользователя, выполняющего запрос", required = true)
             @RequestHeader(HEADER) final Long userId,
             @Parameter(description = "Номер первой записи (пагинация)", example = "0")
@@ -86,12 +86,12 @@ public class ItemRequestController {
             description = "Возвращает детальную информацию о запросе, включая вещи, созданные по нему",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Запрос найден",
-                            content = @Content(schema = @Schema(implementation = ItemRequestGetResponseDto.class))),
+                            content = @Content(schema = @Schema(implementation = ItemRequestResponse.class))),
                     @ApiResponse(responseCode = "404", description = "Запрос не найден")
             }
     )
     @GetMapping("/{itemRequestId}")
-    public ItemRequestGetResponseDto getById(
+    public ItemRequestResponse getById(
             @Parameter(description = "ID пользователя, выполняющего запрос", required = true)
             @RequestHeader(HEADER) final Long userId,
             @Parameter(description = "ID запроса на вещь", required = true)

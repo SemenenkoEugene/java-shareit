@@ -1,0 +1,15 @@
+package {{package}};
+{{#models}}
+{{#model}}
+{{#isEnum}}
+
+import {{javaxPackage}}.annotation.Generated;
+
+{{>enumOuterClass}}
+{{/isEnum}}
+{{^isEnum}}
+
+{{>record}}
+{{/isEnum}}
+{{/model}}
+{{/models}}

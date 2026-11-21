@@ -7,6 +7,7 @@ plugins {
 //    id 'com.github.spotbugs' version '6.0.12'
     id 'jacoco'
     id 'io.freefair.lombok' version '8.10' apply false
+    id 'org.openapi.generator' version '7.27.0'
 }
 
 group = 'ru.practicum'
@@ -15,6 +16,26 @@ version = '0.0.1-SNAPSHOT'
 java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.register('generateUserDto') {
+    dependsOn ':api-contract:generateUserDto'
+}
+
+tasks.register('generateItemDto') {
+    dependsOn ':api-contract:generateItemDto'
+}
+
+tasks.register('generateBookingDto') {
+    dependsOn ':api-contract:generateBookingDto'
+}
+
+tasks.register('generateRequestDto') {
+    dependsOn ':api-contract:generateRequestDto'
+}
+
+tasks.register('generateAllDto') {
+    dependsOn ':api-contract:generateAllDto'
 }
 
 subprojects {

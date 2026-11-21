@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.shareit.request.dto.ItemRequestCreateDto;
+import ru.practicum.shareit.generated.request.dto.CreateItemRequestRequest;
 
 
 @Validated
@@ -39,7 +39,7 @@ public class ItemRequestController {
 
     @PostMapping
     public ResponseEntity<Object> create(@RequestHeader(X_SHARER_USER_ID) final Long userId,
-                                         @Valid @RequestBody final ItemRequestCreateDto itemRequestCreateDto) {
+                                         @Valid @RequestBody final CreateItemRequestRequest itemRequestCreateDto) {
         return itemRequestClient.create(userId, itemRequestCreateDto);
     }
 }

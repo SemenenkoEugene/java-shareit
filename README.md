@@ -1,80 +1,161 @@
-# java-shareit
+# ShareIt
 
-Приложение, в котором можно обмениваться с друзьями вещами на время: инструментами, гаджетами, книгами и так далее. Как каршеринг, только для вещей.
+ShareIt — сервис для обмена вещами между пользователями. В нём можно публиковать вещи, искать доступные предложения, создавать и подтверждать бронирования, оставлять комментарии после завершённой аренды и размещать запросы на отсутствующие вещи.
 
-Приложение реализовано с помощью:
-- **Spring Boot**
-- **Spring Data JPA**
-- **БД - PostgreSQL**
-- **JUnit 5**
--  **Springdoc OpenAPI (Swagger UI)** — для документирования и тестирования REST API
+## Архитектура
 
----
+Проект состоит из трёх Gradle-модулей:
 
-## Swagger UI
+- `gateway` — внешний HTTP-вход на порту `8080`. Проверяет входные данные и проксирует запросы в `server` через `RestTemplate` и Apache HttpClient 5;
+- `server` — приложение на порту `9090` с бизнес-логикой, транзакциями, Spring Data JPA/Hibernate и доступом к PostgreSQL;
+- `api-contract` — общий Java-модуль с HTTP DTO. Модели генерируются как Java records из OpenAPI-спецификаций и используются обоими приложениями.
 
-Для проекта подключён **Swagger** через библиотеку [springdoc-openapi-starter-webmvc-ui](https://springdoc.org/).  
-Он автоматически генерирует интерактивную документацию по REST-эндпоинтам.
+Между `gateway` и `server` нет прямой Gradle-зависимости: во время выполнения они взаимодействуют только по HTTP. Оба модуля зависят от `api-contract` на этапе компиляции.
 
-📄 **Доступ к документации API:**
-- Swagger UI — [http://localhost:9090/swagger-ui/index.html](http://localhost:9090/swagger-ui/index.html)
-- OpenAPI спецификация — [http://localhost:9090/v3/api-docs](http://localhost:9090/v3/api-docs)
+```text
+Клиент -> gateway :8080 -> HTTP -> server :9090 -> PostgreSQL
+                \                    /
+                 +-- api-contract --+
+```
 
-> Swagger подключён только в модуле **shareIt-server**, где реализованы REST-контроллеры.  
-> Сервис **shareIt-gateway** выполняет роль шлюза и Swagger там не используется.
+Для операций от имени пользователя применяется заголовок `X-Sharer-User-Id`.
 
----
+## Функциональность
 
-В приложении реализуются следующие сущности:
-1. Класс **User** с полями:
-   - **id** — уникальный идентификатор пользователя;
-   - **name** — имя или логин пользователя;
-   - **email** — адрес электронной почты (что два пользователя не могут
-иметь одинаковый адрес электронной почты).
-2. Класс **Item** с полями:
-   - **id** — уникальный идентификатор вещи;
-   - **name** — краткое название;
-   - **description** — развёрнутое описание;
-   - **available** — статус о том, доступна или нет вещь для аренды;
-   - **owner** — владелец вещи;
-   - **request** — если вещь была создана по запросу другого пользователя, то в этом
-поле будет храниться ссылка на соответствующий запрос.
-3. Класс **Booking** с полями:
-   - **id** — уникальный идентификатор бронирования;
-   - **start** — дата и время начала бронирования;
-   - **end** — дата и время конца бронирования;
-   - **item** — вещь, которую пользователь бронирует;
-   - **booker** — пользователь, который осуществляет бронирование;
-   - **status** — статус бронирования. Может принимать одно из следующих
-значений:
-    1. *WAITING* — новое бронирование, ожидает одобрения;
-    2. *APPROVED* — бронирование подтверждено владельцем;
-    3. *REJECTED* — бронирование отклонено владельцем;
-    4. *CANCELED* — бронирование отменено создателем.
-  4. Класс **ItemRequest** — класс, отвечающий за запрос вещи, с полями:
-     - **id** — уникальный идентификатор запроса;
-     - **description** — текст запроса, содержащий описание требуемой вещи;
-     - **requestor** — пользователь, создавший запрос;
-     - **created** — дата и время создания запроса.
-   5. Класс **Comment** - класс, отвечающий за комментарии, с полями:
-      - **id** — уникальный идентификатор комментария;
-      - **text** — содержимое комментария;
-      - **item** — вещь, к которой относится комментарий;
-      - **author** — автор комментария;
-      - **created** — дата создания комментария.
+- пользователи: создание, получение, изменение и удаление;
+- вещи: создание и изменение, просмотр вещей владельца, поиск доступных вещей;
+- бронирования: создание, подтверждение или отклонение владельцем, выборки по состоянию с пагинацией;
+- комментарии: публикация пользователем после завершённого бронирования;
+- запросы вещей: создание запроса, просмотр собственных и чужих запросов, получение запроса по идентификатору.
 
-## Приложение разбито на два сервиса:
-> shareIt-server - основной сервис с бизнес-логикой
+Основные HTTP-контракты находятся в:
 
-> shareIt-gateway - сервис по валидации входящих данных
+- [`specs/openapi/users.yaml`](specs/openapi/users.yaml);
+- [`specs/openapi/items.yaml`](specs/openapi/items.yaml);
+- [`specs/openapi/bookings.yaml`](specs/openapi/bookings.yaml);
+- [`specs/openapi/requests.yaml`](specs/openapi/requests.yaml).
 
-Запуск настроен через **Docker**. Приложения *shareIt-server*, *shareIt-gateway*  и база данных PostgreSQL запускаются в отдельном Docker-контейнере каждый и их общение происходит через REST.
+## Технологии
 
-В проекте реализованы:
-- юнит-тесты с помощью **JUnit 5**;
-- интеграционные тесты, проверяющие взаимодействие с базой данных;
-- реализованы тесты для REST-эндпоинтов с использованием **MockMVC**;
-- реализованы тесты для слоя репозиториев с использованием аннотации **@DataJpaTest**;
-- реализованы тесты для работы с JSON для DTO;
+- Java 21;
+- Spring Boot 3.5.6, Spring MVC и Jakarta Validation;
+- Spring Data JPA / Hibernate;
+- PostgreSQL, H2 в тестах;
+- Gradle Wrapper 8.14.6;
+- OpenAPI Generator 7.27.0;
+- Lombok;
+- Springdoc OpenAPI;
+- JUnit 5, Mockito, MockMvc, `@DataJpaTest` и `@JsonTest`;
+- Checkstyle, PMD и JaCoCo.
 
-Для проверки реализованной функциональности использовались [postman-тесты](https://github.com/SemenenkoEugene/java-shareit/blob/main/shareit-postman-test.json).
+## Спецификации и генерация DTO
+
+Разработка контрактов ведётся от спецификаций:
+
+- [`specs/system.yaml`](specs/system.yaml) описывает архитектуру и системные ограничения;
+- `specs/domains/*.yaml` фиксируют бизнес-правила и наблюдаемое поведение предметных областей;
+- `specs/openapi/*.yaml` являются источником HTTP DTO.
+
+Модуль `api-contract` генерирует records для областей `users`, `items`, `bookings` и `requests`. Для генерации всех моделей выполните:
+
+```powershell
+.\gradlew.bat generateAllDto
+```
+
+Доступны и отдельные задачи: `generateUserDto`, `generateItemDto`, `generateBookingDto` и `generateRequestDto`. Генерация также автоматически запускается перед компиляцией `api-contract`.
+
+Результат помещается в `api-contract/build/generated/openapi-*`. Эти файлы не следует редактировать или добавлять в Git: контракт меняется через YAML-спецификации и повторную генерацию.
+
+## Сборка и проверка
+
+В репозитории находится Gradle Wrapper, поэтому устанавливать Gradle отдельно не требуется.
+
+Полная проверка проекта:
+
+```powershell
+.\gradlew.bat clean build
+```
+
+Тесты отдельных приложений:
+
+```powershell
+.\gradlew.bat :gateway:test
+.\gradlew.bat :server:test
+```
+
+Задача `test` использует JUnit Platform и профиль Spring `test`, формирует отчёт JaCoCo и проверяет минимальное покрытие строк `80%`. В `build` также входят Checkstyle и PMD. SpotBugs в текущей конфигурации отключён.
+
+## Локальный запуск
+
+Для `server` требуется PostgreSQL. Значения по умолчанию находятся в [`server/src/main/resources/application.yml`](server/src/main/resources/application.yml):
+
+```text
+URL:      jdbc:postgresql://localhost:5432/shareit
+user:     postgres
+password: admin
+```
+
+После запуска базы данных приложения можно поднять в двух терминалах:
+
+```powershell
+.\gradlew.bat :server:bootRun
+```
+
+```powershell
+.\gradlew.bat :gateway:bootRun
+```
+
+Клиентские запросы следует отправлять в `gateway` по адресу `http://localhost:8080`. По умолчанию он обращается к `server` по адресу `http://localhost:9090`.
+
+### Swagger UI
+
+Springdoc подключён в модуле `server`:
+
+- Swagger UI: [http://localhost:9090/swagger-ui/index.html](http://localhost:9090/swagger-ui/index.html);
+- runtime OpenAPI: [http://localhost:9090/v3/api-docs](http://localhost:9090/v3/api-docs).
+
+Файлы `specs/openapi/*.yaml` используются как источники DTO и хранятся в репозитории независимо от runtime-документации Springdoc.
+
+## Docker
+
+Dockerfile используют multi-stage сборку: Gradle Wrapper создаёт исполняемый `bootJar` на JDK 21, после чего приложение запускается в отдельном JRE 21-образе от непривилегированного пользователя `shareit`.
+
+Для сборки образов и запуска всего приложения выполните:
+
+```powershell
+docker compose up --build
+```
+
+Compose запускает сервисы последовательно по health checks: PostgreSQL → `server` → `gateway`. После запуска доступны:
+
+- внешний API через `gateway`: [http://localhost:8080](http://localhost:8080);
+- `server` и Swagger UI: [http://localhost:9090](http://localhost:9090);
+- PostgreSQL с хоста: `localhost:6541`.
+
+Остановить контейнеры:
+
+```powershell
+docker compose down
+```
+
+Данные PostgreSQL сохраняются в именованном volume `shareit-db-data`. Команда `docker compose down -v` дополнительно удалит этот volume и все хранящиеся в нём данные.
+
+## Структура проекта
+
+```text
+java-shareit/
+├── api-contract/             # генерация и публикация общих HTTP DTO
+├── gateway/                  # валидация внешних запросов и HTTP-прокси
+├── server/                   # бизнес-логика и persistence
+├── specs/
+│   ├── domains/              # правила предметных областей
+│   ├── openapi/              # HTTP-контракты и источник DTO
+│   └── system.yaml           # архитектурная спецификация
+├── openapi-templates/spring/ # шаблоны генерации Java records
+├── .dockerignore             # исключения из Docker build context
+├── build.gradle
+├── settings.gradle
+└── docker-compose.yml
+```
+
+Схема базы данных создаётся из [`server/src/main/resources/schema.sql`](server/src/main/resources/schema.sql); Liquibase и Flyway в проекте не настроены.

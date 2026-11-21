@@ -2,32 +2,32 @@ package ru.practicum.shareit.request;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import ru.practicum.shareit.request.dto.ItemRequestCreateDto;
-import ru.practicum.shareit.request.dto.ItemRequestCreateResponseDto;
-import ru.practicum.shareit.request.dto.ItemRequestGetResponseDto;
+import ru.practicum.shareit.generated.request.dto.CreateItemRequestRequest;
+import ru.practicum.shareit.generated.request.dto.ItemRequestCreateResponse;
+import ru.practicum.shareit.generated.request.dto.ItemRequestResponse;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ItemRequestMapper {
 
-    public static ItemRequestCreateResponseDto toCreateResponseDto(final ItemRequest itemRequest) {
-        return ItemRequestCreateResponseDto.builder()
+    public static ItemRequestCreateResponse toCreateResponseDto(final ItemRequest itemRequest) {
+        return ItemRequestCreateResponse.builder()
                 .id(itemRequest.getId())
                 .description(itemRequest.getDescription())
                 .created(itemRequest.getCreated())
                 .build();
     }
 
-    public static ItemRequestGetResponseDto toGetResponseDto(final ItemRequest itemRequest) {
-        return ItemRequestGetResponseDto.builder()
+    public static ItemRequestResponse toGetResponseDto(final ItemRequest itemRequest) {
+        return ItemRequestResponse.builder()
                 .id(itemRequest.getId())
                 .description(itemRequest.getDescription())
                 .created(itemRequest.getCreated())
                 .build();
     }
 
-    public static ItemRequest toItemRequest(final ItemRequestCreateDto itemRequestCreateDto) {
+    public static ItemRequest toItemRequest(final CreateItemRequestRequest itemRequestCreateDto) {
         final ItemRequest itemRequest = new ItemRequest();
-        itemRequest.setDescription(itemRequestCreateDto.getDescription());
+        itemRequest.setDescription(itemRequestCreateDto.description());
         return itemRequest;
     }
 }

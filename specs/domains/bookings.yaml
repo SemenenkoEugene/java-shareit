@@ -1,0 +1,227 @@
+domain: bookings
+
+contracts:
+  request_dtos:
+    booking:
+      name: CreateBookingRequest
+      module: api-contract
+      package: ru.practicum.shareit.generated.booking.dto
+      generated_from: specs/openapi/bookings.yaml
+      fields:
+        start: { json_name: start, type: LocalDateTime, required: true, constraints: [NotNull, Future] }
+        end: { json_name: end, type: LocalDateTime, required: true, constraints: [NotNull, Future] }
+        itemId: { json_name: itemId, type: Long, required: true, constraints: [NotNull] }
+  response_dtos:
+    booking:
+      name: BookingResponse
+      module: api-contract
+      package: ru.practicum.shareit.generated.booking.dto
+      generated_from: "specs/openapi/bookings.yaml#/components/schemas/BookingResponse"
+      fields: [id, start, end, status, booker, item]
+      nested_fields:
+        booker: [id]
+        item: [id, name]
+  entities:
+    booking:
+      name: Booking
+      table: bookings
+      fields:
+        id: { column: booking_id, generated: IDENTITY, database_nullable: false }
+        start: { column: start_date, database_nullable: false }
+        end: { column: end_date, database_nullable: false }
+        item: { column: item_id, relation: "ManyToOne Item", database_nullable: false }
+        booker: { column: booker_id, relation: "ManyToOne User", database_nullable: false }
+        status: { column: status, enum_storage: STRING, database_nullable: false }
+  enums:
+    http_booking_status:
+      name: BookingStatus
+      module: api-contract
+      package: ru.practicum.shareit.generated.booking.dto
+      role: "Generated enum поля status в BookingResponse"
+      values: [WAITING, APPROVED, REJECTED, CANCELED]
+    entity_status:
+      name: Status
+      module: server
+      package: ru.practicum.shareit.booking
+      role: "Внутренний enum persisted Booking.status"
+      values: [WAITING, APPROVED, REJECTED, CANCELED]
+    query_state:
+      generated_contract_enum: BookingQueryState
+      internal_enum: RequestBookingStatus
+      internal_modules: [gateway, server]
+      role: "Внутренний разбор и исполнение фильтра state; не entity status"
+      values: [ALL, CURRENT, PAST, FUTURE, WAITING, REJECTED]
+  enum_mapping: "BookingMapper преобразует server Status в generated BookingStatus по совпадающему имени"
+
+endpoints:
+  - id: BOOK-API-001
+    operation: create_booking
+    method: POST
+    path: /bookings
+    parameters:
+      - { name: X-Sharer-User-Id, in: header, type: Long, required: true }
+    request: CreateBookingRequest
+    response: BookingResponse
+    success_http_status: 200
+  - id: BOOK-API-002
+    operation: decide_booking
+    method: PATCH
+    path: /bookings/{bookingId}
+    parameters:
+      - { name: X-Sharer-User-Id, in: header, type: Long, required: true }
+      - { name: bookingId, in: path, type: Long, required: true }
+      - { name: approved, in: query, type: boolean, required: true }
+    request: null
+    response: BookingResponse
+    success_http_status: 200
+  - id: BOOK-API-003
+    operation: get_booking_by_id
+    method: GET
+    path: /bookings/{bookingId}
+    parameters:
+      - { name: X-Sharer-User-Id, in: header, type: Long, required: true }
+      - { name: bookingId, in: path, type: Long, required: true }
+    request: null
+    response: BookingResponse
+    success_http_status: 200
+  - id: BOOK-API-004
+    operation: get_booker_bookings
+    method: GET
+    path: /bookings
+    parameters:
+      - { name: X-Sharer-User-Id, in: header, type: Long, required: true }
+      - { name: state, in: query, type: String, required: false, default: ALL }
+      - { name: from, in: query, type: int, required: false, default: 0, minimum: 0 }
+      - { name: size, in: query, type: int, required: false, default: 20, minimum: 1 }
+    request: null
+    response: "List<BookingResponse>"
+    success_http_status: 200
+  - id: BOOK-API-005
+    operation: get_owner_bookings
+    method: GET
+    path: /bookings/owner
+    parameters:
+      - { name: X-Sharer-User-Id, in: header, type: Long, required: true }
+      - { name: state, in: query, type: String, required: false, default: ALL }
+      - { name: from, in: query, type: int, required: false, default: 0, minimum: 0 }
+      - { name: size, in: query, type: int, required: false, default: 20, minimum: 1 }
+    request: null
+    response: "List<BookingResponse>"
+    success_http_status: 200
+
+operations:
+  create_booking:
+    service: BookingServiceImpl.create
+    persistence: "Loads user and item, validates values, assigns WAITING, then BookingRepository.save"
+    transaction: read_write
+    concurrency_protection: none
+  decide_booking:
+    service: BookingServiceImpl.approve
+    persistence: "Loads booking with PESSIMISTIC_WRITE, checks owner and WAITING, then saves APPROVED or REJECTED"
+    transaction: read_write
+    concurrency_protection: "PESSIMISTIC_WRITE lock on the selected booking row until transaction completion"
+  get_booking_by_id:
+    service: BookingServiceImpl.getById
+    transaction: read_only
+  get_booker_bookings:
+    service: BookingServiceImpl.getAllByState
+    transaction: read_only
+  get_owner_bookings:
+    service: BookingServiceImpl.getAllByStateForOwner
+    transaction: read_only
+
+business_rules:
+  - id: BOOK-001
+    rule: "Creating a booking requires an existing user and item."
+  - id: BOOK-002
+    rule: "The item must have available=true when the booking is created."
+  - id: BOOK-003
+    rule: "An item owner cannot book their own item; this condition is reported as NotFoundException."
+  - id: BOOK-004
+    rule: "Booking start and end must both be non-null."
+  - id: BOOK-005
+    rule: "Booking start must be strictly later than the service's current time."
+  - id: BOOK-006
+    rule: "Booking end must be strictly later than start."
+  - id: BOOK-007
+    rule: "A newly created booking receives WAITING status."
+  - id: BOOK-008
+    rule: "Only the item owner may decide a booking; a different user receives NotFoundException."
+  - id: BOOK-009
+    rule: "Only WAITING may transition through the decision endpoint."
+  - id: BOOK-010
+    rule: "approved=true changes WAITING to APPROVED; approved=false changes WAITING to REJECTED."
+  - id: BOOK-011
+    rule: "Get by id is allowed only for the booker or item owner; other existing users receive NotFoundException."
+  - id: BOOK-012
+    rule: "All get and decision operations explicitly verify that X-Sharer-User-Id identifies an existing user."
+  - id: BOOK-013
+    rule: "Query state parsing is case-insensitive and accepts only ALL, CURRENT, PAST, FUTURE, WAITING, and REJECTED."
+  - id: BOOK-014
+    rule: "Every booking list is ordered by start descending."
+  - id: BOOK-015
+    rule: "PAST means end < now; FUTURE means start > now; CURRENT means start < now and end > now. Equality is excluded from all three states."
+    limitation: "CURRENT passes two separately captured LocalDateTime.now() values to the repository query."
+  - id: BOOK-016
+    rule: "WAITING and REJECTED filter by persisted status; no APPROVED or CANCELED query state exists."
+  - id: BOOK-017
+    rule: "from is an absolute row offset, not a page number; size is the page size."
+  - id: BOOK-018
+    rule: "Decision uses a PESSIMISTIC_WRITE repository query, serializing concurrent decisions for the same booking row."
+  - id: BOOK-019
+    rule: "Creation does not lock the item and does not query for overlapping bookings. Concurrent or overlapping bookings can be persisted."
+  - id: BOOK-020
+    rule: "schema.sql has no overlap, date-order, or item-availability constraint for bookings; @Transactional alone does not prevent creation races."
+
+validation:
+  gateway:
+    create_booking:
+      dto: CreateBookingRequest
+      trigger: "@Valid"
+      failure_http_status: 400
+      constraints:
+        start: { type: LocalDateTime, annotations: [NotNull, Future] }
+        end: { type: LocalDateTime, annotations: [NotNull, Future] }
+        itemId: { type: Long, annotations: [NotNull] }
+    pagination:
+      trigger: "@Validated controller method validation"
+      constraints:
+        from: "Min(0)"
+        size: "Min(1)"
+      failure_http_status: 400
+    state:
+      allowed: [ALL, CURRENT, PAST, FUTURE, WAITING, REJECTED]
+      case_sensitive: false
+      invalid_http_status: 400
+  server:
+    request_dto: CreateBookingRequest
+    generated_record_constraints: "Присутствуют в shared record из api-contract"
+    controller_body_validation: "Не активирована: @RequestBody не аннотирован @Valid"
+    business_validation: [BOOK-001, BOOK-002, BOOK-003, BOOK-004, BOOK-005, BOOK-006, BOOK-008, BOOK-009, BOOK-011, BOOK-012]
+
+errors:
+  - condition: "Required user, item, or booking is absent"
+    exception: NotFoundException
+    http_status: 404
+  - condition: "Owner tries to book own item, non-owner decides booking, or unrelated user gets booking"
+    exception: NotFoundException
+    http_status: 404
+  - condition: "Item is unavailable, dates violate service rules, or booking status is not WAITING during decision"
+    exception: ValidationException
+    http_status: 400
+  - condition: "Invalid state rejected by gateway"
+    exception: IllegalArgumentException
+    http_status: 400
+  - condition: "Invalid state rejected by server"
+    exception: UnsupportedStatusException
+    http_status: 400
+  - condition: "Gateway request-body Jakarta Validation failure"
+    exception: MethodArgumentNotValidException
+    http_status: 400
+  - condition: "Invalid pagination or missing/malformed required header, path, or query parameter"
+    http_status: 400
+
+unknown:
+  - "HTTP status for a database lock timeout or deadlock during PESSIMISTIC_WRITE is not explicitly handled."
+  - "HTTP status for a database integrity error during save or transaction completion is not explicitly handled."
+  - "Direct server calls with null itemId or invalid from/size can raise framework exceptions without a matching custom handler; resulting status is unknown."

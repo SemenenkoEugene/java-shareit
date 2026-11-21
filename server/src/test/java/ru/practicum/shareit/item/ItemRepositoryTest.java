@@ -59,7 +59,29 @@ class ItemRepositoryTest {
         final Pageable pageable = PageRequest.of(0, 10);
 
         Assertions.assertThat(itemRepository.findBySearchText("МяЧ", pageable)).size().isEqualTo(0);
-        Assertions.assertThat(itemRepository.findBySearchText("Про", pageable)).size().isEqualTo(3);
-        Assertions.assertThat(itemRepository.findBySearchText("профессионал", pageable)).size().isEqualTo(2);
+        Assertions.assertThat(itemRepository.findBySearchText("Про", pageable))
+                .hasSize(2)
+                .allMatch(Item::getAvailable);
+        Assertions.assertThat(itemRepository.findBySearchText("профессионал", pageable))
+                .hasSize(2)
+                .allMatch(Item::getAvailable);
+    }
+
+    @Test
+    void findBySearchTextShouldExcludeUnavailableItemMatchingByName() {
+        final User owner = testEntityManager.persist(User.builder()
+                .name("Owner")
+                .email("another-owner@user.ru")
+                .build());
+        testEntityManager.persist(Item.builder()
+                .name("Аккумуляторная дрель")
+                .description("Инструмент")
+                .available(false)
+                .owner(owner)
+                .build());
+
+        final Pageable pageable = PageRequest.of(0, 10);
+
+        Assertions.assertThat(itemRepository.findBySearchText("дрель", pageable)).isEmpty();
     }
 }

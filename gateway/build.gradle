@@ -4,7 +4,37 @@ plugins {
 
 description = 'ShareIt Gateway'
 
+configurations.matching {
+    it.name == 'compileClasspath' || it.name == 'testCompileClasspath'
+}.configureEach {
+    attributes {
+        attribute(
+                org.gradle.api.attributes.LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE,
+                objects.named(
+                        org.gradle.api.attributes.LibraryElements,
+                        org.gradle.api.attributes.LibraryElements.JAR
+                )
+        )
+    }
+}
+
+tasks.named('checkstyleMain') {
+    source = fileTree('src/main/java')
+}
+
+tasks.named('pmdMain') {
+    source = fileTree('src/main/java')
+}
+
+tasks.withType(org.gradle.testing.jacoco.tasks.JacocoReportBase).configureEach {
+    classDirectories.setFrom(files(classDirectories.files.collect {
+        fileTree(dir: it, exclude: 'ru/practicum/shareit/generated/**')
+    }))
+}
+
 dependencies {
+    implementation project(':api-contract')
+
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'

@@ -1,0 +1,159 @@
+plugins {
+    id 'java-library'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+    }
+}
+
+dependencies {
+    api 'com.fasterxml.jackson.core:jackson-annotations'
+    api 'jakarta.validation:jakarta.validation-api'
+    api 'org.springframework:spring-core'
+
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    compileOnly 'jakarta.annotation:jakarta.annotation-api'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir layout.buildDirectory.dir('generated/openapi-users/src/main/java')
+            srcDir layout.buildDirectory.dir('generated/openapi-items/src/main/java')
+            srcDir layout.buildDirectory.dir('generated/openapi-bookings/src/main/java')
+            srcDir layout.buildDirectory.dir('generated/openapi-requests/src/main/java')
+        }
+    }
+}
+
+def generateUserDto = tasks.register(
+        'generateUserDto',
+        org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+) {
+    generatorName.set('spring')
+    inputSpec.set(rootProject.layout.projectDirectory.file('specs/openapi/users.yaml'))
+    outputDir.set(layout.buildDirectory.dir('generated/openapi-users'))
+    templateDir.set(rootProject.layout.projectDirectory.dir('openapi-templates/spring'))
+    modelPackage.set('ru.practicum.shareit.generated.user.dto')
+
+    globalProperties.set([
+            models: ''
+    ])
+    configOptions.set([
+            useSpringBoot3       : 'true',
+            annotationLibrary   : 'none',
+            documentationProvider: 'none',
+            openApiNullable      : 'false',
+            useRecords           : 'true'
+    ])
+    generateModelTests.set(false)
+    generateModelDocumentation.set(false)
+}
+
+def generateItemDto = tasks.register(
+        'generateItemDto',
+        org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+) {
+    generatorName.set('spring')
+    inputSpec.set(rootProject.layout.projectDirectory.file('specs/openapi/items.yaml'))
+    outputDir.set(layout.buildDirectory.dir('generated/openapi-items'))
+    templateDir.set(rootProject.layout.projectDirectory.dir('openapi-templates/spring'))
+    modelPackage.set('ru.practicum.shareit.generated.item.dto')
+    typeMappings.set([
+            'date-time-local': 'java.time.LocalDateTime'
+    ])
+
+    globalProperties.set([
+            models: ''
+    ])
+    configOptions.set([
+            useSpringBoot3       : 'true',
+            annotationLibrary   : 'none',
+            documentationProvider: 'none',
+            openApiNullable      : 'false',
+            useRecords           : 'true'
+    ])
+    generateModelTests.set(false)
+    generateModelDocumentation.set(false)
+}
+
+def generateBookingDto = tasks.register(
+        'generateBookingDto',
+        org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+) {
+    generatorName.set('spring')
+    inputSpec.set(rootProject.layout.projectDirectory.file('specs/openapi/bookings.yaml'))
+    outputDir.set(layout.buildDirectory.dir('generated/openapi-bookings'))
+    templateDir.set(rootProject.layout.projectDirectory.dir('openapi-templates/spring'))
+    modelPackage.set('ru.practicum.shareit.generated.booking.dto')
+    typeMappings.set([
+            'date-time-local': 'java.time.LocalDateTime'
+    ])
+
+    globalProperties.set([
+            models: ''
+    ])
+    configOptions.set([
+            useSpringBoot3       : 'true',
+            annotationLibrary   : 'none',
+            documentationProvider: 'none',
+            openApiNullable      : 'false',
+            useRecords           : 'true'
+    ])
+    validateSpec.set(true)
+    generateModelTests.set(false)
+    generateModelDocumentation.set(false)
+}
+
+def generateRequestDto = tasks.register(
+        'generateRequestDto',
+        org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+) {
+    generatorName.set('spring')
+    inputSpec.set(rootProject.layout.projectDirectory.file('specs/openapi/requests.yaml'))
+    outputDir.set(layout.buildDirectory.dir('generated/openapi-requests'))
+    templateDir.set(rootProject.layout.projectDirectory.dir('openapi-templates/spring'))
+    modelPackage.set('ru.practicum.shareit.generated.request.dto')
+    typeMappings.set([
+            'date-time-local': 'java.time.LocalDateTime'
+    ])
+
+    globalProperties.set([
+            models: ''
+    ])
+    configOptions.set([
+            useSpringBoot3       : 'true',
+            annotationLibrary   : 'none',
+            documentationProvider: 'none',
+            openApiNullable      : 'false',
+            useRecords           : 'true'
+    ])
+    validateSpec.set(true)
+    generateModelTests.set(false)
+    generateModelDocumentation.set(false)
+}
+
+def generateAllDto = tasks.register('generateAllDto') {
+    dependsOn generateUserDto, generateItemDto, generateBookingDto, generateRequestDto
+}
+
+tasks.named('compileJava') {
+    dependsOn generateAllDto
+}
+
+tasks.matching {
+    it.name == 'generateEffectiveLombokConfig' || it.name == 'delombok'
+}.configureEach {
+    dependsOn generateAllDto
+}
+
+tasks.named('checkstyleMain') {
+    source = fileTree('src/main/java')
+}
+
+tasks.named('pmdMain') {
+    source = fileTree('src/main/java')
+}

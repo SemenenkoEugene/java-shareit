@@ -17,10 +17,10 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import ru.practicum.shareit.booking.dto.BookingRequestDto;
-import ru.practicum.shareit.booking.dto.BookingResponseDto;
 import ru.practicum.shareit.booking.dto.RequestBookingStatus;
 import ru.practicum.shareit.exception.UnsupportedStatusException;
+import ru.practicum.shareit.generated.booking.dto.BookingResponse;
+import ru.practicum.shareit.generated.booking.dto.CreateBookingRequest;
 
 import java.util.List;
 
@@ -39,19 +39,19 @@ public class BookingController {
             description = "Создаёт новое бронирование вещи для указанного пользователя",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Бронирование успешно создано",
-                            content = @Content(schema = @Schema(implementation = BookingResponseDto.class))),
+                            content = @Content(schema = @Schema(implementation = BookingResponse.class))),
                     @ApiResponse(responseCode = "400", description = "Некорректные данные запроса"),
                     @ApiResponse(responseCode = "404", description = "Пользователь или вещь не найдены")
             }
     )
     @PostMapping
-    public BookingResponseDto create(
+    public BookingResponse create(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Данные для создания бронирования",
                     required = true,
-                    content = @Content(schema = @Schema(implementation = BookingRequestDto.class))
+                    content = @Content(schema = @Schema(implementation = CreateBookingRequest.class))
             )
-            @RequestBody final BookingRequestDto bookingRequestDto,
+            @RequestBody final CreateBookingRequest bookingRequestDto,
             @Parameter(description = "ID пользователя, совершающего бронирование", required = true)
             @RequestHeader(HEADER) final Long userId
     ) {
@@ -68,7 +68,7 @@ public class BookingController {
             }
     )
     @PatchMapping("/{bookingId}")
-    public BookingResponseDto update(
+    public BookingResponse update(
             @Parameter(description = "ID бронирования", required = true)
             @PathVariable final Long bookingId,
             @Parameter(description = "ID владельца вещи", required = true)
@@ -89,7 +89,7 @@ public class BookingController {
             }
     )
     @GetMapping("/{bookingId}")
-    public BookingResponseDto getBookingById(
+    public BookingResponse getBookingById(
             @Parameter(description = "ID бронирования", required = true)
             @PathVariable final Long bookingId,
             @Parameter(description = "ID пользователя (автор или владелец)", required = true)
@@ -105,7 +105,7 @@ public class BookingController {
             responses = @ApiResponse(responseCode = "200", description = "Список успешно получен")
     )
     @GetMapping
-    public List<BookingResponseDto> getAllByState(
+    public List<BookingResponse> getAllByState(
             @Parameter(description = "Состояние бронирования (ALL, CURRENT, PAST, FUTURE, WAITING, REJECTED)")
             @RequestParam(defaultValue = "ALL") final String state,
             @Parameter(description = "Номер первой записи (пагинация)", example = "0")
@@ -127,7 +127,7 @@ public class BookingController {
             responses = @ApiResponse(responseCode = "200", description = "Список успешно получен")
     )
     @GetMapping("/owner")
-    public List<BookingResponseDto> getBookingsOwner(
+    public List<BookingResponse> getBookingsOwner(
             @Parameter(description = "Состояние бронирования (ALL, CURRENT, PAST, FUTURE, WAITING, REJECTED)")
             @RequestParam(required = false, defaultValue = "ALL") final String state,
             @Parameter(description = "Номер первой записи (пагинация)", example = "0")

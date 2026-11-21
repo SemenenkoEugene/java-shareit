@@ -1,0 +1,222 @@
+openapi: 3.0.3
+info:
+  title: ShareIt Bookings API
+  version: 1.0.0
+paths:
+  /bookings:
+    post:
+      operationId: createBooking
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+      responses:
+        '200':
+          description: Booking created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+    get:
+      operationId: getBookerBookings
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/StateQuery'
+        - $ref: '#/components/parameters/FromQuery'
+        - $ref: '#/components/parameters/SizeQuery'
+      responses:
+        '200':
+          description: Booker bookings returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BookingResponse'
+  /bookings/owner:
+    get:
+      operationId: getOwnerBookings
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/StateQuery'
+        - $ref: '#/components/parameters/FromQuery'
+        - $ref: '#/components/parameters/SizeQuery'
+      responses:
+        '200':
+          description: Owner bookings returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BookingResponse'
+  /bookings/{bookingId}:
+    parameters:
+      - $ref: '#/components/parameters/BookingIdPath'
+    patch:
+      operationId: decideBooking
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+        - name: approved
+          in: query
+          required: true
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Booking decision applied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+    get:
+      operationId: getBookingById
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+      responses:
+        '200':
+          description: Booking returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+components:
+  parameters:
+    UserIdHeader:
+      name: X-Sharer-User-Id
+      in: header
+      required: true
+      schema:
+        type: integer
+        format: int64
+    BookingIdPath:
+      name: bookingId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    StateQuery:
+      name: state
+      in: query
+      required: false
+      description: Booking query state; matching is case-insensitive.
+      schema:
+        allOf:
+          - $ref: '#/components/schemas/BookingQueryState'
+        default: ALL
+    FromQuery:
+      name: from
+      in: query
+      required: false
+      schema:
+        type: integer
+        format: int32
+        default: 0
+        minimum: 0
+    SizeQuery:
+      name: size
+      in: query
+      required: false
+      schema:
+        type: integer
+        format: int32
+        default: 20
+        minimum: 1
+  schemas:
+    CreateBookingRequest:
+      type: object
+      x-class-extra-annotation:
+        - '@lombok.Builder(toBuilder = true)'
+        - '@lombok.extern.jackson.Jacksonized'
+      required:
+        - start
+        - end
+        - itemId
+      properties:
+        start:
+          type: string
+          format: date-time-local
+          x-field-extra-annotation: '@jakarta.validation.constraints.Future'
+          description: Must be in the future when validated by the gateway.
+        end:
+          type: string
+          format: date-time-local
+          x-field-extra-annotation: '@jakarta.validation.constraints.Future'
+          description: Must be in the future when validated by the gateway.
+        itemId:
+          type: integer
+          format: int64
+    BookingResponse:
+      type: object
+      x-class-extra-annotation:
+        - '@lombok.Builder(toBuilder = true)'
+        - '@lombok.extern.jackson.Jacksonized'
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        start:
+          type: string
+          format: date-time-local
+          nullable: true
+        end:
+          type: string
+          format: date-time-local
+          nullable: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BookingStatus'
+          nullable: true
+        booker:
+          allOf:
+            - $ref: '#/components/schemas/BookingResponseUser'
+          nullable: true
+        item:
+          allOf:
+            - $ref: '#/components/schemas/BookingResponseItem'
+          nullable: true
+    BookingResponseUser:
+      type: object
+      x-class-extra-annotation:
+        - '@lombok.Builder(toBuilder = true)'
+        - '@lombok.extern.jackson.Jacksonized'
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+    BookingResponseItem:
+      type: object
+      x-class-extra-annotation:
+        - '@lombok.Builder(toBuilder = true)'
+        - '@lombok.extern.jackson.Jacksonized'
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        name:
+          type: string
+          nullable: true
+    BookingStatus:
+      type: string
+      enum:
+        - WAITING
+        - APPROVED
+        - REJECTED
+        - CANCELED
+    BookingQueryState:
+      type: string
+      enum:
+        - ALL
+        - CURRENT
+        - PAST
+        - FUTURE
+        - WAITING
+        - REJECTED

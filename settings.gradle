@@ -1,3 +1,4 @@
 rootProject.name = 'shareit'
 include(':gateway')
 include(':server')
+include(':api-contract')

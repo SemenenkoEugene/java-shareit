@@ -1,33 +1,59 @@
-version: '3.8'
 services:
-  gateway:
-    build: gateway
-    image: gateway
-    container_name: gateway-container
-    ports:
-      - "8080:8080"
-    depends_on:
-      - server
+  db:
+    image: postgres:13.7-alpine
     environment:
-      - SHAREIT_SERVER_URL=http://server:9090
+      POSTGRES_DB: shareit
+      POSTGRES_USER: shareit
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "6541:5432"
+    volumes:
+      - shareit-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shareit -d shareit"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   server:
-    build: server
-    image: server
-    container_name: server-container
+    build:
+      context: .
+      dockerfile: server/dockerfile
+    image: shareit-server
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/shareit
+      SPRING_DATASOURCE_USERNAME: shareit
+      SPRING_DATASOURCE_PASSWORD: admin
     ports:
       - "9090:9090"
     depends_on:
-      - db
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/shareit
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9090/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
 
-  db:
-    image: postgres:13.7-alpine
-    container_name: shareit-db-container
-    ports:
-      - "6541:5432"
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/dockerfile
+    image: shareit-gateway
     environment:
-      - POSTGRES_DB=shareit
-      - POSTGRES_USER=shareit
-      - POSTGRES_PASSWORD=admin
+      SHAREIT_SERVER_URL: http://server:9090
+    ports:
+      - "8080:8080"
+    depends_on:
+      server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  shareit-db-data:

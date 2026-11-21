@@ -1,0 +1,318 @@
+openapi: 3.0.3
+info:
+  title: ShareIt Items API
+  version: 1.0.0
+paths:
+  /items:
+    post:
+      operationId: createItem
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateItemRequest'
+      responses:
+        '200':
+          description: Item created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemResponse'
+    get:
+      operationId: getOwnerItems
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/FromQuery'
+        - $ref: '#/components/parameters/SizeQuery'
+      responses:
+        '200':
+          description: Owner items returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ItemResponse'
+  /items/search:
+    get:
+      operationId: searchItems
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+        - name: text
+          in: query
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/FromQuery'
+        - $ref: '#/components/parameters/SizeQuery'
+      responses:
+        '200':
+          description: Matching items returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ItemResponse'
+  /items/{itemId}:
+    parameters:
+      - $ref: '#/components/parameters/ItemIdPath'
+    patch:
+      operationId: updateItem
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateItemRequest'
+      responses:
+        '200':
+          description: Item updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemResponse'
+    delete:
+      operationId: deleteItem
+      responses:
+        '200':
+          description: Item deleted
+    get:
+      operationId: getItemById
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+      responses:
+        '200':
+          description: Item returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemResponse'
+  /items/{itemId}/comment:
+    parameters:
+      - $ref: '#/components/parameters/ItemIdPath'
+    post:
+      operationId: createComment
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentRequest'
+      responses:
+        '200':
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentResponse'
+components:
+  parameters:
+    UserIdHeader:
+      name: X-Sharer-User-Id
+      in: header
+      required: true
+      schema:
+        type: integer
+        format: int64
+    ItemIdPath:
+      name: itemId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    FromQuery:
+      name: from
+      in: query
+      required: false
+      schema:
+        type: integer
+        format: int32
+        default: 0
+        minimum: 0
+    SizeQuery:
+      name: size
+      in: query
+      required: false
+      schema:
+        type: integer
+        format: int32
+        default: 20
+        minimum: 1
+  schemas:
+    CreateItemRequest:
+      type: object
+      x-class-extra-annotation:
+        - '@lombok.Builder(toBuilder = true)'
+        - '@lombok.extern.jackson.Jacksonized'
+      required:
+        - name
+        - description
+        - available
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        name:
+          type: string
+          pattern: '^[\s\S]*\S[\s\S]*$'
+        description:
+          type: string
+          pattern: '^[\s\S]*\S[\s\S]*$'
+        available:
+          type: boolean
+        nextBooking:
+          allOf:
+            - $ref: '#/components/schemas/ItemBookingResponse'
+          nullable: true
+        lastBooking:
+          allOf:
+            - $ref: '#/components/schemas/ItemBookingResponse'
+          nullable: true
+        comments:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/CommentResponse'
+        requestId:
+          type: integer
+          format: int64
+          nullable: true
+    UpdateItemRequest:
+      type: object
+      x-class-extra-annotation:
+        - '@lombok.Builder(toBuilder = true)'
+        - '@lombok.extern.jackson.Jacksonized'
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        name:
+          type: string
+          nullable: true
+          pattern: '^[\s\S]*\S[\s\S]*$'
+        description:
+          type: string
+          nullable: true
+          pattern: '^[\s\S]*\S[\s\S]*$'
+        available:
+          type: boolean
+          nullable: true
+        nextBooking:
+          allOf:
+            - $ref: '#/components/schemas/ItemBookingResponse'
+          nullable: true
+        lastBooking:
+          allOf:
+            - $ref: '#/components/schemas/ItemBookingResponse'
+          nullable: true
+        comments:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/CommentResponse'
+        requestId:
+          type: integer
+          format: int64
+          nullable: true
+    CreateCommentRequest:
+      type: object
+      x-class-extra-annotation:
+        - '@lombok.Builder(toBuilder = true)'
+        - '@lombok.extern.jackson.Jacksonized'
+      required:
+        - text
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        text:
+          type: string
+          pattern: '^[\s\S]*\S[\s\S]*$'
+        authorName:
+          type: string
+          nullable: true
+        created:
+          type: string
+          nullable: true
+    ItemResponse:
+      type: object
+      x-class-extra-annotation:
+        - '@lombok.Builder(toBuilder = true)'
+        - '@lombok.extern.jackson.Jacksonized'
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        available:
+          type: boolean
+          nullable: true
+        nextBooking:
+          allOf:
+            - $ref: '#/components/schemas/ItemBookingResponse'
+          nullable: true
+        lastBooking:
+          allOf:
+            - $ref: '#/components/schemas/ItemBookingResponse'
+          nullable: true
+        comments:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/CommentResponse'
+        requestId:
+          type: integer
+          format: int64
+          nullable: true
+    CommentResponse:
+      type: object
+      x-class-extra-annotation:
+        - '@lombok.Builder(toBuilder = true)'
+        - '@lombok.extern.jackson.Jacksonized'
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        text:
+          type: string
+          nullable: true
+        authorName:
+          type: string
+          nullable: true
+        created:
+          type: string
+          format: date-time-local
+          nullable: true
+    ItemBookingResponse:
+      type: object
+      x-class-extra-annotation:
+        - '@lombok.Builder(toBuilder = true)'
+        - '@lombok.extern.jackson.Jacksonized'
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        bookerId:
+          type: integer
+          format: int64
+          nullable: true

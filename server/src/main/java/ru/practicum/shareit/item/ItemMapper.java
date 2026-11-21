@@ -2,14 +2,15 @@ package ru.practicum.shareit.item;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.generated.item.dto.CreateItemRequest;
+import ru.practicum.shareit.generated.item.dto.ItemResponse;
 import ru.practicum.shareit.item.model.Item;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ItemMapper {
 
-    public static ItemDto toItemDto(final Item item) {
-        return ItemDto.builder()
+    public static ItemResponse toItemResponse(final Item item) {
+        return ItemResponse.builder()
                 .id(item.getId())
                 .name(item.getName())
                 .description(item.getDescription())
@@ -18,11 +19,11 @@ public class ItemMapper {
                 .build();
     }
 
-    public static Item toItem(final ItemDto itemDto) {
+    public static Item toItem(final CreateItemRequest itemDto) {
         final Item item = new Item();
-        item.setName(itemDto.getName());
-        item.setDescription(itemDto.getDescription());
-        item.setAvailable(itemDto.getAvailable());
+        item.setName(itemDto.name());
+        item.setDescription(itemDto.description());
+        item.setAvailable(itemDto.available());
         return item;
     }
 }

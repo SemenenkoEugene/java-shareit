@@ -1,0 +1,160 @@
+domain: requests
+
+contracts:
+  request_dtos:
+    create:
+      name: CreateItemRequestRequest
+      module: api-contract
+      package: ru.practicum.shareit.generated.request.dto
+      generated_from: specs/openapi/requests.yaml#/components/schemas/CreateItemRequestRequest
+      fields: [description]
+  response_dtos:
+    create:
+      name: ItemRequestCreateResponse
+      module: api-contract
+      package: ru.practicum.shareit.generated.request.dto
+      generated_from: specs/openapi/requests.yaml#/components/schemas/ItemRequestCreateResponse
+      fields: [id, description, created]
+    get:
+      name: ItemRequestResponse
+      module: api-contract
+      package: ru.practicum.shareit.generated.request.dto
+      generated_from: specs/openapi/requests.yaml#/components/schemas/ItemRequestResponse
+      fields: [id, description, created, items]
+      requested_item_fields: [id, name, description, available, requestId]
+  entities:
+    request:
+      name: ItemRequest
+      table: requests
+      fields:
+        id: { column: request_id, generated: IDENTITY, database_nullable: false }
+        description: { column: request_description, database_nullable: false }
+        requestor: { column: requestor_id, relation: "ManyToOne User", database_nullable: false }
+        created: { column: create_date, database_nullable: false }
+
+endpoints:
+  - id: REQ-API-001
+    operation: create_request
+    method: POST
+    path: /requests
+    parameters:
+      - { name: X-Sharer-User-Id, in: header, type: Long, required: true }
+    request: CreateItemRequestRequest
+    response: ItemRequestCreateResponse
+    success_http_status: 200
+  - id: REQ-API-002
+    operation: get_own_requests
+    method: GET
+    path: /requests
+    parameters:
+      - { name: X-Sharer-User-Id, in: header, type: Long, required: true }
+      - { name: from, in: query, type: int, required: false, default: 0, minimum: 0 }
+      - { name: size, in: query, type: int, required: false, default: 20, minimum: 1 }
+    request: null
+    response: "List<ItemRequestResponse>"
+    success_http_status: 200
+  - id: REQ-API-003
+    operation: get_other_requests
+    method: GET
+    path: /requests/all
+    parameters:
+      - { name: X-Sharer-User-Id, in: header, type: Long, required: true }
+      - { name: from, in: query, type: int, required: false, default: 0, minimum: 0 }
+      - { name: size, in: query, type: int, required: false, default: 20, minimum: 1 }
+    request: null
+    response: "List<ItemRequestResponse>"
+    success_http_status: 200
+  - id: REQ-API-004
+    operation: get_request_by_id
+    method: GET
+    path: /requests/{itemRequestId}
+    parameters:
+      - { name: X-Sharer-User-Id, in: header, type: Long, required: true }
+      - { name: itemRequestId, in: path, type: Long, required: true }
+    request: null
+    response: ItemRequestResponse
+    success_http_status: 200
+
+operations:
+  create_request:
+    service: ItemRequestServiceImpl.create
+    persistence: "Loads requestor, sets created to LocalDateTime.now(), then ItemRequestRepository.save"
+    transaction: read_write
+  get_own_requests:
+    service: ItemRequestServiceImpl.getAllByRequestorId
+    persistence: "Queries requests by requestor id, then loads linked items in one collection query"
+    transaction: read_only
+  get_other_requests:
+    service: ItemRequestServiceImpl.getAll
+    persistence: "Validates user, queries requests whose requestor differs, then loads linked items in one collection query"
+    transaction: read_only
+  get_request_by_id:
+    service: ItemRequestServiceImpl.getById
+    persistence: "Loads request by id, then loads linked items by request id"
+    transaction: read_only
+
+business_rules:
+  - id: REQ-001
+    rule: "Creating a request requires an existing user; that user becomes requestor."
+  - id: REQ-002
+    rule: "The server assigns the request creation time using LocalDateTime.now()."
+  - id: REQ-003
+    rule: "Gateway creation validation requires a non-blank description."
+  - id: REQ-004
+    rule: "Own-request listing filters by requestor id but does not verify that the user exists; an unknown id can receive an empty list."
+  - id: REQ-005
+    rule: "Other-request listing requires an existing user and excludes requests created by that user."
+  - id: REQ-006
+    rule: "Own and other request lists are ordered by created descending and then id descending."
+  - id: REQ-007
+    rule: "from is an absolute row offset, not a page number; size is the page size."
+  - id: REQ-008
+    rule: "Get by id requires an existing request but does not validate or otherwise use X-Sharer-User-Id."
+  - id: REQ-009
+    rule: "Any caller supplying a parseable user header can read any existing request by id, including when that user does not exist."
+  - id: REQ-010
+    rule: "Response items are all Item entities whose itemRequest references the request; no availability or owner filter is applied."
+  - id: REQ-011
+    rule: "A request without linked items is returned with items as an empty list."
+  - id: REQ-012
+    rule: "The order of items inside each request response is not specified by ItemRepository queries."
+
+validation:
+  gateway:
+    create_request:
+      trigger: "@Valid"
+      constraints:
+        description: [NotNull, NotBlank]
+      constraint_generation:
+        NotNull: "OpenAPI required property"
+        NotBlank: "OpenAPI x-field-extra-annotation"
+      failure_http_status: 400
+    pagination:
+      trigger: "@Validated controller method validation"
+      constraints:
+        from: "Min(0)"
+        size: "Min(1)"
+      failure_http_status: 400
+  server:
+    generated_record_constraints: "Присутствуют в shared record из api-contract"
+    controller_body_validation: "Не активирована: @RequestBody не аннотирован @Valid"
+    business_validation: [REQ-001, REQ-005, REQ-008]
+
+errors:
+  - condition: "User is absent during request creation or other-request listing"
+    exception: NotFoundException
+    http_status: 404
+  - condition: "Request is absent during get by id"
+    exception: NotFoundException
+    http_status: 404
+  - condition: "Gateway request-body Jakarta Validation failure"
+    exception: MethodArgumentNotValidException
+    http_status: 400
+  - condition: "IllegalArgumentException or ConstraintViolationException handled by gateway ErrorHandler"
+    http_status: 400
+  - condition: "Invalid pagination or missing/malformed required header or path parameter"
+    http_status: 400
+
+unknown:
+  - "HTTP status for a database integrity error during save or transaction completion is not explicitly handled."
+  - "Direct server calls with invalid from or size can raise IllegalArgumentException from OffsetBasedPageRequest without a matching custom handler; resulting status is unknown."

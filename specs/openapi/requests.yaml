@@ -1,0 +1,176 @@
+openapi: 3.0.3
+info:
+  title: ShareIt Item Requests API
+  version: 1.0.0
+paths:
+  /requests:
+    post:
+      operationId: createItemRequest
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateItemRequestRequest'
+      responses:
+        '200':
+          description: Item request created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemRequestCreateResponse'
+    get:
+      operationId: getOwnItemRequests
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/FromQuery'
+        - $ref: '#/components/parameters/SizeQuery'
+      responses:
+        '200':
+          description: Own item requests returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ItemRequestResponse'
+  /requests/all:
+    get:
+      operationId: getOtherItemRequests
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/FromQuery'
+        - $ref: '#/components/parameters/SizeQuery'
+      responses:
+        '200':
+          description: Other users' item requests returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ItemRequestResponse'
+  /requests/{itemRequestId}:
+    parameters:
+      - $ref: '#/components/parameters/ItemRequestIdPath'
+    get:
+      operationId: getItemRequestById
+      parameters:
+        - $ref: '#/components/parameters/UserIdHeader'
+      responses:
+        '200':
+          description: Item request returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemRequestResponse'
+components:
+  parameters:
+    UserIdHeader:
+      name: X-Sharer-User-Id
+      in: header
+      required: true
+      schema:
+        type: integer
+        format: int64
+    ItemRequestIdPath:
+      name: itemRequestId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    FromQuery:
+      name: from
+      in: query
+      required: false
+      schema:
+        type: integer
+        format: int32
+        default: 0
+        minimum: 0
+    SizeQuery:
+      name: size
+      in: query
+      required: false
+      schema:
+        type: integer
+        format: int32
+        default: 20
+        minimum: 1
+  schemas:
+    CreateItemRequestRequest:
+      type: object
+      x-class-extra-annotation:
+        - '@lombok.Builder(toBuilder = true)'
+        - '@lombok.extern.jackson.Jacksonized'
+      required:
+        - description
+      properties:
+        description:
+          type: string
+          x-field-extra-annotation: '@jakarta.validation.constraints.NotBlank'
+    ItemRequestCreateResponse:
+      type: object
+      x-class-extra-annotation:
+        - '@lombok.Builder(toBuilder = true)'
+        - '@lombok.extern.jackson.Jacksonized'
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        created:
+          type: string
+          format: date-time-local
+          nullable: true
+    ItemRequestResponse:
+      type: object
+      x-class-extra-annotation:
+        - '@lombok.Builder(toBuilder = true)'
+        - '@lombok.extern.jackson.Jacksonized'
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        created:
+          type: string
+          format: date-time-local
+          nullable: true
+        items:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/RequestedItemResponse'
+    RequestedItemResponse:
+      type: object
+      x-class-extra-annotation:
+        - '@lombok.Builder(toBuilder = true)'
+        - '@lombok.extern.jackson.Jacksonized'
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        available:
+          type: boolean
+          nullable: true
+        requestId:
+          type: integer
+          format: int64
+          nullable: true
